@@ -90,7 +90,7 @@ def get_ss_volume_from_dataset(dataset, batch_size, depth_values, get_squared):
 # the goal of this is to warp the "other_image" into the reference camera frame
 # using the reference camera's depth map
 # view_image: [batch_size, channels, height, width]
-# reference_depth: [batch_size, height, width]
+# reference_depth: [batch_size, height, width, 1]
 # ref_shift_slope: [batch_size, height, width, 2]
 # view_inv_inter_camera: [batch_size, height, width, 2]
 # view_warped_shift_slope: [batch_size, height, width, 2]
@@ -102,12 +102,13 @@ def inverse_warping(
     view_warped_shift_slope,
     base_grid=None,
 ):
+    ref_depth_est = ref_depth_est.unsqueeze(-1)
     # if the mask is not None, mulitiply it with the ref_depth_est
 
     if base_grid is None:
         base_grid = generate_base_grid(view_image.shape[2:]).cuda()
 
-    slope_shifts = (ref_shift_slope + view_warped_shift_slope * -1) * ref_depth_est.unsqueeze(-1)
+    slope_shifts = (ref_shift_slope + view_warped_shift_slope * -1) * ref_depth_est
     full_grid = base_grid + slope_shifts + view_inv_inter_camera
 
     # and warp
@@ -127,7 +128,8 @@ def inverse_warping(
 
 # depth_map is a 2D tensor that's a height map in reference view
 # height_offsets is 1D 
-# everything else is same as get_ss_volume_from_dataset 
+# everything else is same as get_ss_volume_from_dataset
+# depth_map is [1, H, W] 
 def get_height_aware_vol_from_dataset(
         dataset, batch_size, height_offsets, depth_map, get_squared
 ):
@@ -138,9 +140,7 @@ def get_height_aware_vol_from_dataset(
         num_workers=4,
         drop_last=False,
     )
-
     depth_map = depth_map.unsqueeze(-1)
-
     volume = None
     if get_squared:
         volume_sq = None
@@ -174,7 +174,6 @@ def get_height_aware_vol_from_dataset(
     else:
         return volume
 
-# this should maybe go elsewhere for symmetry purposes?
 def get_map_offset_volume(image, ref_heights, height_offsets,
                           warped_shift_slopes, inv_inter_camera_map,
                           base_grid=None):
@@ -184,9 +183,8 @@ def get_map_offset_volume(image, ref_heights, height_offsets,
 
     # make the grid stack with inter camera shifts
     base_grid = base_grid + inv_inter_camera_map
-    base_grid = torch.stack([base_grid.squeeze(0)] * len(height_offsets), dim=0)
-
-    ref_heights = torch.stack([ref_heights.squeeze(0)] * len(height_offsets), dim=0)
+    base_grid = base_grid.repeat(len(height_offsets), 1, 1, 1)
+    ref_heights = ref_heights.repeat(len(height_offsets), 1, 1, 1)
 
     height_offsets = height_offsets.view(len(height_offsets), 1, 1, 1)
     ref_heights = ref_heights + height_offsets

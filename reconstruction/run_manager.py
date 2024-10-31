@@ -140,7 +140,7 @@ class RunManager:
 
         if self.guide_map is not None:
             # add the guide map to the depth 
-            outputs["depth"] = outputs["depth"] + self.guide_map.unsqueeze(0)
+            outputs["depth"] = outputs["depth"] + self.guide_map.squeeze(-1)
         return outputs
     
     def train_sample(self, sample):
