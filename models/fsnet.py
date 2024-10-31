@@ -76,20 +76,9 @@ class VolumeConvNet(nn.Module):
 
     def forward(self, volume_variance, depth_values):
         ## cost volume regularization
-        from time import time 
-        t0 = time()
         cost_reg = self.cost_regularization(volume_variance)
-        t1 = time()
         cost_reg = cost_reg.squeeze(1)
-        t2 = time()
         prob_volume = F.softmax(cost_reg, dim=1)
-        t3 = time()
         depth = depth_regression(prob_volume, depth_values=depth_values)
-        t4 = time() 
-
-        print(t4 - t3)
-        print(t3 - t2)
-        print(t2 - t1)
-        print(t1 - t0)
 
         return depth

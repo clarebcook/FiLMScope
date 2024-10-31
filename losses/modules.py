@@ -19,11 +19,8 @@ class SSIM(nn.Module):
         self.C1 = 0.01**2
         self.C2 = 0.03**2
 
+    # x, y, and mask should be [B, C, H, W]
     def forward(self, x, y, mask):
-        x = x.permute(0, 3, 1, 2)  # [B, H, W, C] --> [B, C, H, W]
-        y = y.permute(0, 3, 1, 2)
-        mask = mask.permute(0, 3, 1, 2)
-
         mu_x = self.mu_x_pool(x)
         mu_y = self.mu_y_pool(y)
         sigma_x = self.sig_x_pool(x**2) - mu_x**2
@@ -31,9 +28,9 @@ class SSIM(nn.Module):
         sigma_xy = self.sig_xy_pool(x * y) - mu_x * mu_y
         SSIM_n = (2 * mu_x * mu_y + self.C1) * (2 * sigma_xy + self.C2)
         SSIM_d = (mu_x**2 + mu_y**2 + self.C1) * (sigma_x + sigma_y + self.C2)
-        SSIM_mask = self.mask_pool(mask)
+        SSIM_mask = self.mask_pool(mask.to(x.dtype))
         output = torch.clamp((1 - SSIM_n / SSIM_d) / 2, 0, 1) * SSIM_mask
-        return output.permute(0, 2, 3, 1)  # [B, C, H, W] --> [B, H, W, C]
+        return output
 
 
 def gradient_x(img):

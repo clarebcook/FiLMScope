@@ -1,4 +1,6 @@
 
+from datetime import datetime
+
 def _get_conditional_indices(start0, end0, start1, end1, image_shape): 
     start0 = max(0, start0) 
     end0 = min(end0, image_shape[0]) 
@@ -16,3 +18,8 @@ def get_crop_indices(midpoint, crop_shape, image_shape, return_adjustments=True)
         return start0, end0, start1, end1 
     
     return start0, end0, start1, end1, start0 - _start0, end0 - _end0, start1 - _start1, end1 - _end1
+
+def get_timestamp():
+    str_format = "%Y%m%d_%H%M%S" 
+    time_string = datetime.now().strftime(str_format) 
+    return time_string

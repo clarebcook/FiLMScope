@@ -155,20 +155,3 @@ def generate_config_dict(gpu_number, sample_name, use_neptune=False,
     }
 
     return config_dictionary
-
-# # this is a description of plots we want to make
-# # and store during training
-# plot_settings = {
-#     "depth_est": {
-#         "weight": None,
-#         "desc": "Estimated height map (mm)",
-#         "sum": False,
-#         "stack": False,
-#     },
-#     # "image_recon": {
-#     #     "weight": None,
-#     #     "desc": "Summed images",
-#     #     "sum": True,
-#     #     "stack": False,
-#     # },
-# }

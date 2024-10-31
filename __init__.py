@@ -5,6 +5,7 @@ import models
 import recon_util 
 import reconstruction 
 import util
+from .config import *
 
-__all__ = ['calibraiton', 'datasets', 'losses', 'models', 'recon_util', 'reconstruction',
-           'util']
+__all__ = ['calibration', 'datasets', 'losses', 'models', 'recon_util', 'reconstruction',
+           'util', 'config']

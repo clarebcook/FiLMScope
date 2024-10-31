@@ -3,7 +3,7 @@ import math
 import xarray as xr 
 from FiLMScope.calibration import generate_normalized_shift_maps
 import cv2
-
+import torch
 from torch.utils.data import Dataset
 
 from FiLMScope.util import load_dictionary, load_image_set
@@ -33,7 +33,7 @@ class FSDataset(Dataset):
 
         self.blank_filename = blank_filename 
         
-        self.image_numbers = np.asarray(image_numbers)
+        self.image_numbers = torch.asarray(image_numbers)
         self.image_filename = image_filename
         self.downsample = downsample
         self.frame_number = frame_number
@@ -44,9 +44,9 @@ class FSDataset(Dataset):
         # instead of torch tensors
         shape = (images.shape[0], images.shape[1], images.shape[2], 2)
         warped_shift_slope_maps = generate_normalized_shift_maps(
-            calibration_filename, type="warped_shift_slope", downsample=downsample).numpy()
+            calibration_filename, type="warped_shift_slope", downsample=downsample)
         inv_inter_camera_maps = generate_normalized_shift_maps(
-            calibration_filename, type="inv_inter_camera", downsample=downsample).numpy()
+            calibration_filename, type="inv_inter_camera", downsample=downsample)
 
         # identify the reference camera, which should be provided in every batch
         # and get the extra needed map
@@ -55,7 +55,7 @@ class FSDataset(Dataset):
         # and load the additional needed map for the reference camera
         ref_camera_shift_slopes = generate_normalized_shift_maps(
             calibration_filename, type="shift_slope",
-            image_numbers=[reference_camera_num], downsample=downsample).numpy()
+            image_numbers=[reference_camera_num], downsample=downsample)
 
         # figure out the size of the crop we will use
         if ref_crop_center is not None:
@@ -114,8 +114,8 @@ class FSDataset(Dataset):
             ref_camera_shift_slopes = crop_maps(ref_camera_shift_slopes, self.map_crops)
 
             # TODO: this should use a different datatype
-            masks = np.ones(
-                inv_inter_camera_maps.shape[:3] + (1,), dtype=np.float32
+            masks = torch.ones(
+                inv_inter_camera_maps.shape[:3] + (1,), dtype=torch.bool
             )
         # adjust inter camera maps based on individual crops, if necessary
         else:
@@ -139,21 +139,20 @@ class FSDataset(Dataset):
 
             ref_map_crops = [startx, endx, starty, endy]
 
-            crop_images = np.zeros(
-                (images.shape[0], lengthx, lengthy, images.shape[-1]), images.dtype
+            crop_images = torch.zeros(
+                images.shape[0], lengthx, lengthy, images.shape[-1], dtype=images.dtype
             )
-            crop_warp_maps = np.zeros(
+            crop_warp_maps = torch.zeros(
                 (images.shape[0], lengthx, lengthy, 2),
                 dtype=warped_shift_slope_maps.dtype,
             )
-            crop_iis_maps = np.zeros(
+            crop_iis_maps = torch.zeros(
                 (images.shape[0], lengthx, lengthy, 2),
                 dtype=inv_inter_camera_maps.dtype,
             )
 
-            # TODO: should be some binary data type, not np.float32
-            masks = np.ones(
-                (images.shape[0], lengthx, lengthy, 1), dtype=np.float32
+            masks = torch.ones(
+                (images.shape[0], lengthx, lengthy, 1), dtype=torch.bool
             )
 
             for i, image_number in enumerate(image_numbers):
@@ -231,21 +230,31 @@ class FSDataset(Dataset):
             warped_shift_slope_maps = crop_warp_maps
             inv_inter_camera_maps = crop_iis_maps
 
-        self.images = images.transpose([0, 3, 1, 2]).astype(np.float32)
+        self.images = images.permute([0, 3, 1, 2]).to(torch.float32)
         self.warped_shift_slope_maps = warped_shift_slope_maps
         self.inv_inter_camera_maps = inv_inter_camera_maps
         self.reference_camera = reference_camera_num
         self.ref_camera_shift_slopes = ref_camera_shift_slopes
-        self.masks = masks.astype(bool)
+        self.masks = masks
 
     def __len__(self):
         return len(self.image_numbers)
+    
+    def to_device(self, device):
+        self.images = self.images.to(device)
+        self.warped_shift_slope_maps = self.warped_shift_slope_maps.to(device) 
+        self.inv_inter_camera_maps = self.inv_inter_camera_maps.to(device) 
+        self.masks = self.masks.to(device) 
 
     @property
     def reference_image(self):
         ref_camera_index = np.where(self.image_numbers == self.reference_camera)[0][0]
         image = self.images[ref_camera_index]
         return image
+    
+    @property 
+    def reference_index(self):
+        return int(torch.where(self.image_numbers == self.reference_camera)[0])
 
     def __getitem__(self, idx):
         return {
@@ -255,6 +264,15 @@ class FSDataset(Dataset):
             "warped_shift_slope_maps": self.warped_shift_slope_maps[idx],
             "inv_inter_camera_maps": self.inv_inter_camera_maps[idx],
             "masks": self.masks[idx], 
+        }
+
+    def get_full_sample(self):
+        return {
+            "imgs": self.images,
+            "image_numbers": self.image_numbers,
+            "warped_shift_slope_maps": self.warped_shift_slope_maps,
+            "inv_inter_camera_maps": self.inv_inter_camera_maps,
+            "masks": self.masks, 
         }
 
     def prep_images(self):
@@ -277,9 +295,9 @@ class FSDataset(Dataset):
         images = None
         for i, (image_num, image) in enumerate(images_dict.items()):
             if images is None:
-                images = np.zeros(
+                images = torch.zeros(
                     (len(images_dict), image.shape[0], image.shape[1], 1),
-                    dtype=np.float32,
+                    dtype=torch.float32,
                 )
 
             if self.blank_filename is not None:
@@ -294,7 +312,7 @@ class FSDataset(Dataset):
                 image = image / exposure - blank_image / (blank_exposure)
                 image = (image - np.min(image)) / (np.max(image) - np.min(image)) * 255 
             
-            images[i, :, :, 0] = image
+            images[i, :, :, 0] = torch.asarray(image.copy())
 
         return images
 
@@ -393,7 +411,7 @@ def crop_maps(maps, crop_values):
     if startx >= 0 and starty >=0 and endx <= maps.shape[1] and endy <= maps.shape[2]:
         maps = maps[:, startx:endx, starty:endy]
     else:
-        map_canvas = np.zeros((maps.shape[0], endx - startx, endy - starty, maps.shape[3]), dtype=maps.dtype)
+        map_canvas = torch.zeros((maps.shape[0], endx - startx, endy - starty, maps.shape[3]), dtype=maps.dtype)
         c_startx = max(startx, 0)
         c_starty = max(starty, 0)
         c_endx = min(endx, maps.shape[1])
