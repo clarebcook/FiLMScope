@@ -1,0 +1,1 @@
+I think here I will give an overview of the paper and what's in the folders. I'll point readers towards the README files in "calibration_scripts" and "reconstruction_scripts" for information on how to set up environments and run the code. 
