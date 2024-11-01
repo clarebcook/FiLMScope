@@ -38,9 +38,7 @@ default_run_args = {
         "unet_layer_channels": [8, 16, 16, 16, 16], # length of this list should be unet_layers + 1
         # can optionally be specified to deviate from default, otherwise None
         "unet_layer_strides":None, 
-        "reuse_model": True,  # only for "video"
-        "start_frame": 0,  # only for "video"
-        "end_frame": None,  # only for "video", set to None to do all frames
+        "reuse_model": True,  # only for videos
     }
 
 cam_num_sets = {
@@ -66,7 +64,8 @@ cam_num_sets = {
 
 
 def generate_config_dict(gpu_number, sample_name, use_neptune=False,
-                         downsample=1, camera_set="all", run_type="frame",
+                         downsample=1, camera_set="all",
+                         frame_number=-1,
                          use_individual_crops=True, load_crop_entry=False, log_description="",
                          loss_weights={}, run_args={}, custom_image_numbers=None):
     if custom_image_numbers is not None:
@@ -122,33 +121,27 @@ def generate_config_dict(gpu_number, sample_name, use_neptune=False,
     for key in default_run_args:
         if key not in run_args:
             run_args[key] = default_run_args[key]
-    run_args["run_type"] = run_type
 
     for key in default_loss_weights:
         if key not in loss_weights:
             loss_weights[key] = default_loss_weights[key]
 
-
-    ### code to manage the supplied settings
+    # remove stored sample information not used in this run
     if "ind_crops" in sample_info:
         sample_info.pop("ind_crops")
 
-    # remove values from "run_args" based on run type
-    if run_type == "frame":
-        for setting in ["start_frame", "end_frame", "reuse_model"]:
-            run_args.pop(setting)
-
-    
+    # add the image numbers used 
     sample_info["image_numbers"] = cam_num_sets[sample_info["camera_set"]]
     sample_info["num_cameras"] = len(sample_info["image_numbers"])
 
+    # and the frame number 
+    run_args["frame_number"] = frame_number
 
     # then arrange everything needed into one dictionary
     config_dictionary = {
         "run_args": run_args,
         "log_description": log_description,
         "use_neptune": use_neptune,
-        "run_type": run_type,
         "sample_info": sample_info,
         "loss_weights": loss_weights,
         "gpu_number": gpu_number,

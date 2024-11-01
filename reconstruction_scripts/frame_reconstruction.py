@@ -12,7 +12,7 @@ gpu_number = "0"
 os.environ["CUDA_VISIBLE_DEVICES"] = gpu_number
 
 config_dict = generate_config_dict(sample_name=sample_name, gpu_number=gpu_number, downsample=4,
-                                   camera_set="all", use_neptune=False,
+                                   camera_set="all", use_neptune=True,
                                    run_args={"iters": 13, "batch_size": 12, "num_depths": 64,
                                              "display_freq": 5},)
 run_manager = RunManager(config_dict)

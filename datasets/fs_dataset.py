@@ -44,9 +44,9 @@ class FSDataset(Dataset):
         # instead of torch tensors
         shape = (images.shape[0], images.shape[1], images.shape[2], 2)
         warped_shift_slope_maps = generate_normalized_shift_maps(
-            calibration_filename, type="warped_shift_slope", downsample=downsample)
+            calibration_filename, type="warped_shift_slope", image_shape=images.shape[1:3])
         inv_inter_camera_maps = generate_normalized_shift_maps(
-            calibration_filename, type="inv_inter_camera", downsample=downsample)
+            calibration_filename, type="inv_inter_camera", image_shape=images.shape[1:3])
 
         # identify the reference camera, which should be provided in every batch
         # and get the extra needed map
@@ -55,7 +55,7 @@ class FSDataset(Dataset):
         # and load the additional needed map for the reference camera
         ref_camera_shift_slopes = generate_normalized_shift_maps(
             calibration_filename, type="shift_slope",
-            image_numbers=[reference_camera_num], downsample=downsample)
+            image_numbers=[reference_camera_num], image_shape=images.shape[1:3])
 
         # figure out the size of the crop we will use
         if ref_crop_center is not None:
@@ -278,7 +278,7 @@ class FSDataset(Dataset):
     def prep_images(self):
         images_dict = load_image_set(
             filename=self.image_filename,
-            image_numbers=self.image_numbers,
+            image_numbers=self.image_numbers.tolist(),
             downsample=self.downsample,
             frame_number=self.frame_number,
         )
@@ -286,7 +286,7 @@ class FSDataset(Dataset):
         if self.blank_filename is not None:
             blank_images_dict = load_image_set(
                 filename=self.blank_filename,
-                image_numbers=self.image_numbers,
+                image_numbers=self.image_numbers.tolist(),
                 downsample=self.downsample,
             )
             exposure = xr.open_dataset(self.image_filename).exposure.data.flatten()[0]
@@ -301,7 +301,7 @@ class FSDataset(Dataset):
                 )
 
             if self.blank_filename is not None:
-                blank_image = blank_images_dict[image_num] 
+                blank_image = blank_images_dict[int(image_num)] 
                 blank_image = blank_image.astype(np.float32)
 
                 # rehshape as blank image might not be same downsampled
@@ -328,7 +328,7 @@ class FSDataset(Dataset):
         # this is  new, and a lot of this is copy paste
         # should condense into a function that can be used here and in the __init__ func
         if isinstance(self.full_crops, dict):
-            for image_number in self.image_numbers:
+            for image_number in self.image_numbers.tolist():
                 startx, endx, starty, endy = self.full_crops[image_number]
 
                 startx2 = max(startx, 0)
@@ -345,7 +345,8 @@ class FSDataset(Dataset):
                 else:
                     endy = endy - starty
 
-                self.images[image_number, :, startx2 - startx:endx, starty2 - starty:endy] = images[image_number, startx2:endx2, starty2:endy2].transpose([2, 0, 1])
+                self.images[image_number, :, startx2 - startx:endx, starty2 - starty:endy] = (
+                    images[image_number, startx2:endx2, starty2:endy2].permute([2, 0, 1]))
             return
 
         # crop

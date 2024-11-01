@@ -1,1 +1,2 @@
- this will walk a user through reconstruction using a few prepared datasets (we'll model after Kevin's paper and make it easy to specify which of the datasets is being used). This should include at least one video. We'll also include information on installing the environment, which may be different from the calibration environment. We'll call this one "FiLMScope" These datasets will download with their prepared calibration information. 
+this will explain descriptions of the files and how/when to use them 
+as well as which paper figures they correspond to. and which dataset to use for each one? though some of that info will be repeated in the files. 

@@ -183,7 +183,7 @@ def generate_pixel_shift_maps(calibration_filename, type, downsample=1, image_nu
         warped_shift_slopes[start:stop] = partial_warp_slopes
     return warped_shift_slopes 
     
-def generate_normalized_shift_maps(calibration_filename, downsample=1, gen_downsample=8,
+def generate_normalized_shift_maps(calibration_filename, image_shape, gen_downsample=8,
                                    *args, **kwargs):
     maps = generate_pixel_shift_maps(calibration_filename=calibration_filename,
                                      downsample=gen_downsample, *args, **kwargs) 
@@ -193,13 +193,7 @@ def generate_normalized_shift_maps(calibration_filename, downsample=1, gen_downs
     maps = torch.flip(maps, dims=[-1]) 
     maps *= 2
 
-    # then upsample to match "downsample" 
-    manager = CalibrationInfoManager(calibration_filename)
-    full_image_shape = manager.image_shape
-
-    image_shape = (int(full_image_shape[0] / downsample),
-                   int(full_image_shape[1] / downsample))
-
+    # reshape to match potentially downsampled image
     transform = Resize(image_shape) 
     maps_t = transform(maps.permute(0, 3, 1, 2))
     return maps_t.permute(0, 2, 3, 1)

@@ -25,12 +25,7 @@ class RunManager:
         if self.global_mask is not None:
             self.global_mask = self.global_mask.cuda()
 
-        self.run_type = config_dict["run_type"]
-
-        if self.run_type == "video":
-            frame_number = self.run_args["start_frame"]
-        else:
-            frame_number = -1
+        frame_number = self.run_args["frame_number"]
 
         if self.info["blank_filename"] is not None:
             blank_filename = path_to_data + self.info["blank_filename"]
@@ -93,8 +88,17 @@ class RunManager:
                 self.run_args["num_depths"], dtype=torch.float32)
         self.depth_values = tocuda(self.depth_values)
 
+        self.prepare_volume()
+
+        self.dataset.to_device("cuda")
+
+        self.logger = None
+        if config_dict["use_neptune"]:
+            self.setup_logger()
+
+    def prepare_volume(self):
         with torch.no_grad():
-            if guide_map is None:
+            if self.guide_map is None:
                 volume, volume_sq = get_ss_volume_from_dataset(
                     self.dataset,
                     self.run_args["batch_size"],
@@ -114,12 +118,6 @@ class RunManager:
                 volume.div_(num_views).pow_(2)
             )
 
-        self.dataset.to_device("cuda")
-
-        self.logger = None
-        if config_dict["use_neptune"]:
-            self.setup_logger()
-
     def setup_logger(self):
         # importing here to avoid needing to install neptune
         # if it's not being used
@@ -130,6 +128,21 @@ class RunManager:
             config_dictionary=self.config_dict, 
             run_name=self.run_name
         )
+
+    def swap_frames(self, frame_number):
+        self.run_args["frame_number"] = frame_number
+
+        # not sure why this is necessary
+        # the the DataLoader used to make the volume 
+        # fails if the data is not moved back to the cpu
+        self.dataset.to_device("cpu")
+        self.dataset.swap_frames(frame_number)
+        self.reference_image = self.dataset.reference_image.cuda()
+        self.prepare_volume()
+        self.dataset.to_device("cuda")
+
+        if self.config_dict["use_neptune"]:
+            self.setup_logger()
 
     def run_forward_model(self):
         outputs = {}
