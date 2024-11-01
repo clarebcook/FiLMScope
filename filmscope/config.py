@@ -1,4 +1,10 @@
-path_to_data = "/media/Friday/Temporary/Clare/FiLMScope_paper_data"
+# location where data was downloaded
+path_to_data = "/path/to/folder/FiLMScope_paper_data"
+
+# this is where logging will be performed by some scripts
 log_folder = path_to_data + '/log_folder'
-neptune_project = "fourier-lightfield/FLCAM-MVS"
-neptune_api_token = "eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiIyNDkyMzVhOC0wY2EwLTQ3YmItOGY4My0wNzI4NTVhZDA1OWYifQ=="
+
+# project and api_token can be generated at neptune.ai
+# but are not necessary to run the example scripts
+neptune_project = ""
+neptune_api_token = ""
