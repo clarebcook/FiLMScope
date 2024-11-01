@@ -1,22 +1,16 @@
-# this is a file that is slightly different from "remove_identified_vertices.py"
-# while I can probably find a way to better combine them,
-# right now the loading in the other file is too slow when using an nc file directly
-# so this file handles loading slightly differently 
-
 # the purpose of this file is to make it easy to display all the vertices
 # found with the calibration sequence.
-# and visually select those that should be removed.
+# and manually select those that should be removed.
 
-# We could think about eventually adding in an option for selecting new vertices
-# but that might not be ideal.
 import numpy as np
 from matplotlib import pyplot as plt
 import cv2
 
-from FiLMScope.util import load_graph_images
-from FiLMScope.calibration import CalibrationInfoManager
+from filmscope.util import load_graph_images
+from filmscope.config import path_to_data
+from filmscope.calibration import CalibrationInfoManager
 
-image_folder = "/media/Friday/Temporary/Clare/FiLMScope_paper_data/calibration_data"
+image_folder = path_to_data + "/calibration_data"
 
 display_downsample = 8
 
@@ -26,11 +20,16 @@ current_camera_index = 0
 current_image_set = None
 current_image = None
 
-calibration_filename = None
-if calibration_filename is None:
+# if example_only is True, 
+# this will use the example calibration filename and not save deleted vertices
+example_only = True 
+if example_only:
+    calibration_filename = image_folder + '/calibration_information_example'
+else:
     calibration_filename = image_folder + '/calibration_information'
 
 calibration_manager = CalibrationInfoManager(calibration_filename) 
+image_numbers = calibration_manager.image_numbers
 vertices_dict = calibration_manager.all_vertices
 if not vertices_dict:
     raise ValueError("You have not yet identified vertices for this image folder.")
@@ -42,7 +41,7 @@ def get_title():
 
 
 def add_circles():
-    image = current_image.copy() #all_images[current_plane][current_camera].copy()
+    image = current_image.copy()
     points = vertices_dict[current_plane][current_camera]
 
     radius = 40
@@ -73,7 +72,8 @@ def remove_point(event):
             current_plane = current_plane + 1
 
             if current_plane == plane_numbers[-1] + 1:
-                calibration_manager.save_all_info()
+                if not example_only:
+                    calibration_manager.save_all_info()
                 plt.close()
                 return
             # TODO: put up some sort of message that loading is happening?
@@ -84,14 +84,15 @@ def remove_point(event):
                    plane_numbers=[current_plane],
                    downsample=display_downsample
                )[0]
-            calibration_manager.save_all_info()
+            if not example_only:
+                calibration_manager.save_all_info()
         else:
             current_camera_index = current_camera_index + 1
             current_camera = image_numbers[current_camera_index]
         current_image = current_image_set[current_camera]
 
-        # we'll take this moment to save progress
-        # calibration_manager.save_all_info()
+        if not example_only:
+            calibration_manager.save_all_info()
 
     else:
         # remove the selected point
@@ -114,15 +115,18 @@ current_image_set = load_graph_images(
                    folder=image_folder,
                    image_numbers=image_numbers,
                    plane_numbers=[current_plane],
-                   downsample=display_downsample
+                   downsample=display_downsample,
+                   calibration_filename=calibration_filename
                )[0]
 current_camera = image_numbers[current_camera_index]
 current_image = current_image_set[current_camera]
 
 image = add_circles()
-im = ax.imshow(image)  # fix this, maybe not [0][0]
+im = ax.imshow(image)
 fig.suptitle(get_title())
 cid = fig.canvas.mpl_connect("button_press_event", remove_point)
 
 plt.show()
-calibration_manager.save_all_info()
+
+if not example_only:
+    calibration_manager.save_all_info()

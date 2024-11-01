@@ -1,6 +1,6 @@
-from FiLMScope.reconstruction import generate_config_dict, RunManager
-from FiLMScope.recon_util import get_sample_information
-from FiLMScope.config import path_to_data
+from filmscope.reconstruction import generate_config_dict, RunManager
+from filmscope.recon_util import get_sample_information
+from filmscope.config import path_to_data
 
 import xarray as xr
 import os

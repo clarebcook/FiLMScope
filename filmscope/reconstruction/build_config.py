@@ -2,7 +2,7 @@
 
 ### import everything
 import numpy as np
-from FiLMScope.recon_util import (get_individual_crop, get_sample_information,
+from filmscope.recon_util import (get_individual_crop, get_sample_information,
                                   add_individual_crop)
 
 default_loss_weights = {

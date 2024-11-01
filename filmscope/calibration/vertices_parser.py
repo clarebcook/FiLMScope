@@ -10,7 +10,7 @@ from ._parse_vertices_functions import (
     get_all_vertices,
 )
 
-from FiLMScope.util import display_with_lines, display_with_points
+from filmscope.util import display_with_lines, display_with_points
 from .calibration_information_manager import CalibrationInfoManager
 
 

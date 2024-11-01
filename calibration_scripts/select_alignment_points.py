@@ -1,20 +1,27 @@
 import numpy as np
 from matplotlib import pyplot as plt
 
-from fourier_lightfield.util import load_image_set, save_dictionary
-from fourier_lightfield.calibration import CalibrationInfoManager
+from filmscope.util import load_image_set
+from filmscope.calibration import CalibrationInfoManager
+from filmscope.config import path_to_data
 
-calibration_folder = "C:/Users/clare/Downloads/temp"#"Z:/2024_05_13_skull_small_lens"
-#image_filename = calibration_folder + '/graph_03_20240108_151306_975.nc'
-# image_filename = calibration_folder + '/rat_skull_20240108_152431_993.nc'
-image_filename = calibration_folder + '/graph_3_20240514_105313_279.nc'
-set_type = "MCAM"
+# image to be used to select the approximate alignment points
+image_filename = path_to_data + '/calibration_data/graph_03_20240812_114900_196.nc'
+
+# if example_only is True, 
+# this will use the example calibration filename and not save deleted vertices
+example_only = True 
+if example_only:
+    calibration_filename = path_to_data + '/calibration_data/calibration_information_example'
+else:
+    calibration_filename = path_to_data + '/calibration_data/calibration_information'
+calibration_manager = CalibrationInfoManager(calibration_filename)
+
 # be careful that these line up with the loaded vertices
-image_numbers = np.arange(48)
+image_numbers = calibration_manager.image_numbers
 display_downsample = 4
 
 image_set = load_image_set(filename=image_filename,
-                           set_type=set_type, 
                            image_numbers=image_numbers,
                            downsample=display_downsample)
 points_dict = {}
@@ -23,11 +30,6 @@ global camera_number
 global camera_number_index 
 camera_number_index = 0
 camera_number = image_numbers[camera_number_index] 
-
-calibration_filename = None
-if calibration_filename is None:
-    calibration_filename = calibration_folder + '/calibration_information'
-calibration_manager = CalibrationInfoManager(calibration_filename)
 
 def get_title():
     return f"Double click to select alignment point for camera {camera_number}"
@@ -61,16 +63,6 @@ cid = fig.canvas.mpl_connect("button_press_event", select_point)
 
 plt.show()
 
-save_for_alignment = True 
-if save_for_alignment:
+if not example_only:
     calibration_manager.approx_alignment_points = points_dict
     calibration_manager.save_all_info()
-# just wanting to do something else with the points for now ...
-else: 
-    save_filename = image_filename[:-3] + '_crop_points.json'
-    image_shape = image_set[0].shape
-    for key, value in points_dict.items(): 
-        value = (value[0] / (image_shape[0] * display_downsample), value[1] / (image_shape[1] * display_downsample))
-        points_dict[key] = value 
-    
-    save_dictionary(points_dict, save_filename)

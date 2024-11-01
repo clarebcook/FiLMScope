@@ -4,12 +4,12 @@
 import numpy as np
 from matplotlib import pyplot as plt
 
-from FiLMScope.util import (
+from filmscope.util import (
     get_crop_indices,
     generate_x_y_vectors,
     generate_A_matrix,
 )
-from FiLMScope.calibration import CalibrationInfoManager
+from filmscope.calibration import CalibrationInfoManager
 from ._vertices_organizing_functions import get_vertices_matrices
 
 

@@ -6,7 +6,7 @@
 import numpy as np 
 import json 
 import os
-from FiLMScope.util import load_dictionary
+from filmscope.util import load_dictionary
 from tqdm import tqdm 
 from PIL import Image
 import xarray as xr 

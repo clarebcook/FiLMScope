@@ -1,10 +1,10 @@
-from FiLMScope.datasets import FSDataset
-from FiLMScope.models import VolumeConvNet
-from FiLMScope.losses import UnSupLoss
-from FiLMScope.config import path_to_data
-from FiLMScope.recon_util import (tocuda, get_ss_volume_from_dataset,
+from filmscope.datasets import FSDataset
+from filmscope.models import VolumeConvNet
+from filmscope.losses import UnSupLoss
+from filmscope.config import path_to_data
+from filmscope.recon_util import (tocuda, get_ss_volume_from_dataset,
                                   get_height_aware_vol_from_dataset)
-
+from .log_manager import NeptuneLogManager
 import torch
 from torch.utils.data import DataLoader
 import torch.optim as optim
@@ -118,10 +118,7 @@ class RunManager:
                 volume.div_(num_views).pow_(2)
             )
 
-    def setup_logger(self):
-        # importing here to avoid needing to install neptune
-        # if it's not being used
-        from .log_manager import NeptuneLogManager
+    def setup_logger(self): 
         self.logger = NeptuneLogManager(
             dataset=self.dataset,
             model=self.model,

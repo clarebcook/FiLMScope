@@ -1,6 +1,6 @@
-from FiLMScope import path_to_data
-from FiLMScope.reconstruction import generate_config_dict, RunManager
-from FiLMScope.calibration import CalibrationInfoManager
+from filmscope.config import path_to_data
+from filmscope.reconstruction import generate_config_dict, RunManager
+from filmscope.calibration import CalibrationInfoManager
 import torch.nn.functional as F
 import torch
 import os

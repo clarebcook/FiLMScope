@@ -1,7 +1,7 @@
 import numpy as np
 from matplotlib import pyplot as plt
 
-from FiLMScope.util import (
+from filmscope.util import (
     load_graph_images, display_with_points, least_squares_fit
 )
 from ._vertices_organizing_functions import align_vertices, get_vertices_matrices

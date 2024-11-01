@@ -5,14 +5,14 @@ import os
 import neptune
 import warnings
 from neptune.types import File
-from FiLMScope.util import get_timestamp
+from filmscope.util import get_timestamp
 from PIL import Image
 import shutil
 import torch
 
-from FiLMScope.config import neptune_api_token as api_token 
-from FiLMScope.config import neptune_project as project
-from FiLMScope.config import log_folder
+from filmscope.config import neptune_api_token as api_token 
+from filmscope.config import neptune_project as project
+from filmscope.config import log_folder
 
 
 class NeptuneLogManager:

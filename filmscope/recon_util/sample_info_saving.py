@@ -1,11 +1,12 @@
 # this file contains useful functions for saving information 
 # like crop range and depth extent for different datasets
 
-from FiLMScope.util import load_dictionary, save_dictionary
+from filmscope.util import load_dictionary, save_dictionary
+from filmscope.config import path_to_data
 import os
 import numpy as np
 
-samples_filename = "/media/Friday/Temporary/Clare/FiLMScope_paper_data/sample_info.json"
+samples_filename = path_to_data + "/sample_info.json"
 
 # if any of the first 4 args are None
 # sample_info cannot be None

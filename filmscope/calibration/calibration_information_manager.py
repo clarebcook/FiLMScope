@@ -1,6 +1,6 @@
 import numpy as np
 from functools import partial
-from FiLMScope.util import load_dictionary, save_dictionary, make_keys_ints
+from filmscope.util import load_dictionary, save_dictionary, make_keys_ints
 import os
 
 

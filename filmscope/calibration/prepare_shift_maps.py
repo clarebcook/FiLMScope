@@ -1,10 +1,10 @@
 # this file contains the functions for generating dense mappings from calibration information
 
 import torch 
-from FiLMScope.calibration import CalibrationInfoManager
-from FiLMScope.util import generate_x_y_vectors, generate_A_matrix
+from filmscope.calibration import CalibrationInfoManager
+from filmscope.util import generate_x_y_vectors, generate_A_matrix
 import numpy as np
-#from FiLMScope.recon_util import generate_base_grid
+#from filmscope.recon_util import generate_base_grid
 from torch.nn.functional import grid_sample
 from torchvision.transforms import Resize
 

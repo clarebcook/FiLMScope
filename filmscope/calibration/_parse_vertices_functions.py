@@ -2,7 +2,7 @@ from matplotlib import pyplot as plt
 import numpy as np
 import cv2
 import math
-from FiLMScope.util import display_with_points
+from filmscope.util import display_with_points
 
 
 # take a bunch of lines and condense them to a set of vertical and horizontal lines

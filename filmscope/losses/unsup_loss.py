@@ -6,7 +6,7 @@ import torch.nn.functional as F
 
 # from config import args, device
 from .modules import SSIM, depth_smoothness
-from FiLMScope.recon_util import inverse_warping
+from filmscope.recon_util import inverse_warping
 
 class UnSupLoss(nn.Module):
     def __init__(self, ssim_weight=6, smooth_weight=0.18, smooth_lambda=1):

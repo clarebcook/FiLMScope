@@ -1,12 +1,12 @@
 import numpy as np
 import math
 import xarray as xr 
-from FiLMScope.calibration import generate_normalized_shift_maps
+from filmscope.calibration import generate_normalized_shift_maps
 import cv2
 import torch
 from torch.utils.data import Dataset
 
-from FiLMScope.util import load_dictionary, load_image_set
+from filmscope.util import load_dictionary, load_image_set
 
 
 # crop_values should be (startx, endx, starty, endy) normalized to full image size

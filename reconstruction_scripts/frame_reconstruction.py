@@ -1,6 +1,6 @@
-from FiLMScope.reconstruction import RunManager, generate_config_dict 
-from FiLMScope.util import get_timestamp
-from FiLMScope.config import log_folder
+from filmscope.reconstruction import RunManager, generate_config_dict 
+from filmscope.util import get_timestamp
+from filmscope.config import log_folder
 from tqdm import tqdm
 import os
 import torch
@@ -8,13 +8,14 @@ import torch
 # select the name of a sample previously saved using "save_new_sample.ipynb"
 sample_name = "skull_with_tool"
 gpu_number = "0"
+use_neptune = False
 
 os.environ["CUDA_VISIBLE_DEVICES"] = gpu_number
 
 config_dict = generate_config_dict(sample_name=sample_name, gpu_number=gpu_number, downsample=4,
-                                   camera_set="all", use_neptune=True,
-                                   run_args={"iters": 13, "batch_size": 12, "num_depths": 64,
-                                             "display_freq": 5},)
+                                   camera_set="all", use_neptune=use_neptune,
+                                   run_args={"iters": 250, "batch_size": 12, "num_depths": 64,
+                                             "display_freq": 50},)
 run_manager = RunManager(config_dict)
 
 # if logging is not done with neptune
