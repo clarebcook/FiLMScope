@@ -1,3 +1,6 @@
+# this script sequntially reconstructs frames from a video 
+# re-using the same network for each frame
+
 from filmscope.reconstruction import generate_config_dict, RunManager
 from filmscope.recon_util import get_sample_information
 from filmscope.config import path_to_data
@@ -9,15 +12,16 @@ import sys
 import select
 from matplotlib import pyplot as plt
 
+# select sample name and gpu number
 sample_name = "knuckle_video"
 gpu_number = "0"
 
 os.environ["CUDA_VISIBLE_DEVICES"] = gpu_number
 
-# used for neptune logging
+# used for neptune logging only
 log_description = "shortened kncukle video recon"
 
-# determine frame numbers 
+# determine frame numbers for this video 
 image_filename = get_sample_information(sample_name)["image_filename"]
 dset = xr.open_dataset(path_to_data + '/' + image_filename)
 frame_numbers = dset.frame_number.data
@@ -31,6 +35,10 @@ config_dict = generate_config_dict(sample_name=sample_name, gpu_number=gpu_numbe
                                              "display_freq": 1000})
 run_manager = RunManager(config_dict)
 
+# perform reconstruction
+# if convergence happens quickly for some frames, 
+# follow promps in the terminal to adjust # iterations used
+# or to manually move on to the next frame
 run_args = config_dict["run_args"]
 for frame_number in frame_numbers:
     print("")
@@ -63,7 +71,9 @@ for frame_number in frame_numbers:
             elif user_input.lower() == "continue":
                 print("moving on to next frame...")
                 break
-    
+
+        # this block can be edited to save/log in another way
+        # this simply displays some outputs with matplotlib
         if log and not use_neptune:
             fig, (ax0, ax1) = plt.subplots(1, 2) 
             ax1.imshow(outputs["depth"].detach().cpu().squeeze(), cmap='turbo')

@@ -10,12 +10,14 @@ from filmscope.util import load_graph_images
 from filmscope.config import path_to_data
 from filmscope.calibration import CalibrationInfoManager
 
+# path location of calibration dataset
 image_folder = path_to_data + "/calibration_data"
 
-display_downsample = 8
-
+# set "current_plane" and "current_camera_index" to values other than 0
+# to start with plane/image other than the first one
+# this can be done if this step is partially completed
 global current_plane, current_camera_index, current_image, current_camera
-current_plane = 2
+current_plane = 0
 current_camera_index = 0
 current_image_set = None
 current_image = None
@@ -27,6 +29,9 @@ if example_only:
     calibration_filename = image_folder + '/calibration_information_example'
 else:
     calibration_filename = image_folder + '/calibration_information'
+
+# finish setup  
+display_downsample = 8
 
 calibration_manager = CalibrationInfoManager(calibration_filename) 
 image_numbers = calibration_manager.image_numbers

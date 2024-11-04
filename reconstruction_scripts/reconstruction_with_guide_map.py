@@ -7,6 +7,7 @@ import os
 from tqdm import tqdm
 from matplotlib import pyplot as plt 
 
+# select gpu number to run on
 gpu_number = "0"
 os.environ["CUDA_VISIBLE_DEVICES"] = gpu_number
 
@@ -67,6 +68,7 @@ run_manager = RunManager(config_dict=config_dict,
 
 reference_image = run_manager.dataset.reference_image.cpu().squeeze()
 
+# perform reconstruction
 iters = config_dict["run_args"]["iters"]
 losses = []
 for i in tqdm(range(iters)):
@@ -74,6 +76,7 @@ for i in tqdm(range(iters)):
     losses.append(float(loss_values["total"]))
 
     # logging can also be performed with neptune or saving elsewhere
+    # but this displays outputs with matplotlib
     if i % config_dict["run_args"]["display_freq"] == 0:
         fig, (ax0, ax1) = plt.subplots(1, 2)
         ax1.imshow(outputs["depth"].detach().cpu().squeeze(), cmap='turbo')

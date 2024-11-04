@@ -5,7 +5,8 @@ from tqdm import tqdm
 import os
 import torch
 
-# select the name of a sample previously saved using "save_new_sample.ipynb"
+# select the name of a sample previously saved using "save_new_sample.ipynb",
+# the gpu number, and whether or not to log with neptune.ai
 sample_name = "skull_with_tool"
 gpu_number = "0"
 use_neptune = False
@@ -25,6 +26,7 @@ if not config_dict["use_neptune"]:
     if not os.path.exists(run_log_folder):
         os.mkdir(run_log_folder)
 
+# perform reconstruction
 iters = config_dict["run_args"]["iters"]
 losses = []
 for i in tqdm(range(iters)):
@@ -33,13 +35,13 @@ for i in tqdm(range(iters)):
         i, log=(log and config_dict["use_neptune"]))
     losses.append(float(loss_values["total"]))
 
-    # this can be edited to change what is recorded
+    # this section can be edited to change what is recorded
     if log and not config_dict["use_neptune"]:
+        # save model
         model_filename = run_log_folder + f'/model_epoch_{i}.pth'
         torch.save(run_manager.model.state_dict(), model_filename)
-
+        # save height map
         depth_filename = run_log_folder + f'/depth_epoch_{i}.pt'
         torch.save(outputs["depth"], depth_filename)
-
 
 run_manager.end()

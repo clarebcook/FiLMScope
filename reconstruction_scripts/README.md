@@ -14,7 +14,7 @@ using the `path_to_data` variable set in the `config.py` file.
 
 ## Reconstruction scripts
 
-Each of the remaining scripts demonstrates a different way to perform 3D reconstruction with this repository. 
+Each of the remaining scripts demonstrates a different way to perform 3D reconstruction with this repository. ``gpu_number`` is specified in each of the scripts and should be edited before running.  
 
 1. ``frame_reconstruction.py``
 

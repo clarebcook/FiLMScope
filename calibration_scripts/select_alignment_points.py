@@ -1,4 +1,8 @@
-import numpy as np
+# run this script to select approximate alignment points from a calibration dataset 
+# set "image_filename" to the file location of any image acquired with this FiLM-Scope
+# with identifiable features
+# set "example_only" to True to test the GUI without saving information
+
 from matplotlib import pyplot as plt
 
 from filmscope.util import load_image_set
@@ -16,20 +20,21 @@ if example_only:
 else:
     calibration_filename = path_to_data + '/calibration_data/calibration_information'
 calibration_manager = CalibrationInfoManager(calibration_filename)
-
-# be careful that these line up with the loaded vertices
 image_numbers = calibration_manager.image_numbers
-display_downsample = 4
 
+# set "camera_number" to start with an image other than the first
+# this is useful if some alignment points have already been selected
+global camera_number
+global camera_number_index 
+camera_number_index = 0
+camera_number = image_numbers[camera_number_index]
+
+# finish setup 
+display_downsample = 4
 image_set = load_image_set(filename=image_filename,
                            image_numbers=image_numbers,
                            downsample=display_downsample)
 points_dict = {}
-
-global camera_number
-global camera_number_index 
-camera_number_index = 0
-camera_number = image_numbers[camera_number_index] 
 
 def get_title():
     return f"Double click to select alignment point for camera {camera_number}"
