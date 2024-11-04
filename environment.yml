@@ -279,4 +279,3 @@ dependencies:
     - urllib3==1.26.20
     - webcolors==24.8.0
     - websocket-client==1.8.0
-prefix: /home/clare/anaconda3/envs/filmscope
