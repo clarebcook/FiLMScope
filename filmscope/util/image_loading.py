@@ -35,6 +35,31 @@ def _convert_to_array_image_number(image_number):
     x_cam = image_number % 6
     return x_cam, y_cam
 
+def load_from_single_image(filename, calibration_filename=None, image_numbers=None,
+                           ensure_grayscale=True):
+    if calibration_filename is None:
+        calibration_filename = (
+            os.path.dirname(os.path.abspath(filename)) + "/calibration_information"
+        )
+    
+    all_indices = load_dictionary(calibration_filename)["crop_indices"]
+    # all_indices = CalibrationInfoManager(calibration_filename).crop_indices
+    raw_image = Image.open(filename)
+    image = np.asarray(raw_image, dtype=np.uint8)
+
+    if image_numbers is None:
+        image_numbers = all_indices.keys()
+
+    images = {}
+    for key, indices in all_indices.items():
+        if key not in image_numbers:
+            continue
+        img = image[indices[0] : indices[1], indices[2] : indices[3]]
+        if ensure_grayscale and len(img.shape) > 2:
+            img = np.mean(img, axis=-1).astype(np.uint8)
+        images[key] = img
+    return images
+
 
 def convert_to_array_image_numbers(image_numbers, total_images=48, exif_orientation=8):
     if exif_orientation != 8 or total_images != 48:
