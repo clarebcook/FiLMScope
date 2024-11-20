@@ -113,6 +113,10 @@ class CalibrationInfoManager(metaclass=PropertyDictMeta):
     @property 
     def plane_numbers(self):
         return [i for i in self.plane_names.keys()]
+    
+    @property 
+    def is_single_image(self):
+        return not len(self.crop_indices) == 0
 
     def load_all_info(self):
         # load the dictionary

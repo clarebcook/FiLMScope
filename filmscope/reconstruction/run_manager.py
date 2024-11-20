@@ -41,7 +41,7 @@ class RunManager:
             ref_crop_center=self.info["ref_crop_center"],
             crop_size=self.info["crop_size"],
             height_est=self.info["height_est"],
-            blank_filename=blank_filename
+            blank_filename=blank_filename,
         )
 
         self.image_loader = DataLoader(

@@ -6,7 +6,7 @@ import cv2
 import torch
 from torch.utils.data import Dataset
 
-from filmscope.util import load_dictionary, load_image_set
+from filmscope.util import load_dictionary, load_image_set, load_from_single_image
 
 
 # crop_values should be (startx, endx, starty, endy) normalized to full image size
@@ -30,15 +30,17 @@ class FSDataset(Dataset):
         crop_centers=None,  # dictionary with image numbers as keys, (x, y) point in image coordinates as values
         crop_size=None,  # length 2 tuple with normalized crop size (i.e. values betwteen 0 and 1)
     ):
+        self.is_single_image = len(load_dictionary(calibration_filename)["crop_indices"]) != 0
+        self.calibration_filename = calibration_filename
 
-        self.blank_filename = blank_filename 
+        self.blank_filename = blank_filename
         
         self.image_numbers = torch.asarray(image_numbers)
         self.image_filename = image_filename
         self.downsample = downsample
         self.frame_number = frame_number
         images = self.prep_images()
-        
+
         # prepare the necessary maps
         # for legacy reasons these start out as numpy arrays
         # instead of torch tensors
@@ -276,12 +278,18 @@ class FSDataset(Dataset):
         }
 
     def prep_images(self):
-        images_dict = load_image_set(
-            filename=self.image_filename,
-            image_numbers=self.image_numbers.tolist(),
-            downsample=self.downsample,
-            frame_number=self.frame_number,
-        )
+        if self.is_single_image:
+            if self.downsample != 1:
+                raise ValueError("Only set up for downsample=1 with single images")
+            images_dict = load_from_single_image(self.image_filename,
+                                                 self.calibration_filename)
+        else: 
+            images_dict = load_image_set(
+                filename=self.image_filename,
+                image_numbers=self.image_numbers.tolist(),
+                downsample=self.downsample,
+                frame_number=self.frame_number,
+            )
 
         if self.blank_filename is not None:
             blank_images_dict = load_image_set(
