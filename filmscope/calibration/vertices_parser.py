@@ -312,9 +312,7 @@ class SystemVertexParser:
         vertices = get_all_vertices(
             image,
             approx_points,
-            expected_spacing=self.calib_info_manager.expected_line_spacing,
             binary_threshold_values=threshold_values,
-            expected_spacing_thresh=int(self.calib_info_manager.expected_line_spacing / 3),
             show=show,
             lsf_range=self.calib_info_manager.lsf_range,
             display_title=f"Vertices for camera {camera_number}, plane {plane_number}",
@@ -374,18 +372,4 @@ class SystemVertexParser:
             display_with_points(
                 image, np.asarray(vertices, dtype=np.uint16), radius=20, thickness=4
             )
-
-    def remove_nan_points(self):
-        # this is such a stupid approach and can't possibly be the best way
-        dictionary = self.calib_info_manager.all_vertices.copy()
-        for key, item in self.calib_info_manager.all_vertices.items():
-            item = item.copy()
-            for key2, point_list in item.items():
-                point_list2 = []
-                for row in point_list:
-                    if np.isnan(row).any():
-                        continue
-                    point_list2.append(row)
-
-                dictionary[key][key2] = point_list2
-        self.calib_info_manager.all_vertices = dictionary
+    

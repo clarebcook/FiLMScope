@@ -3,8 +3,8 @@
 #### which could have images of different sizes.
 #### this is why dictionaries are initially used to store the images
 
-import numpy as np 
-import json 
+import numpy as np
+import cv2 
 import os
 from filmscope.util import load_dictionary
 from tqdm import tqdm 
@@ -72,7 +72,7 @@ def convert_to_array_image_numbers(image_numbers, total_images=48, exif_orientat
     return image_x_y_locs
 
 def load_image_set(filename, image_numbers=None,
-                   downsample=1, frame_number=-1):
+                   downsample=1, frame_number=-1, debayer=True):
     dataset = xr.open_dataset(filename)
 
     # this is a little convoluted,
@@ -111,6 +111,9 @@ def load_image_set(filename, image_numbers=None,
 
         images[number] = np.asarray(images[number])
 
+        if debayer and dataset.sensor_chroma.data == "bayer_gbrg":
+            images[number] = cv2.cvtColor(images[number], cv2.COLOR_BAYER_GB2RGB)
+
     return images
 
 
@@ -123,6 +126,7 @@ def load_graph_images(
         image_numbers=None,
         plane_numbers=None,
         calibration_filename=None,
+        ensure_grayscale=True,
         *args,
         **kwargs,
     ):
@@ -145,6 +149,13 @@ def load_graph_images(
             *args,
             **kwargs,
         )
+
+        # for the graph images, we typically want them to be grayscale
+        # since this is just for calibration
+        if ensure_grayscale:
+            for key, img in images_dict.items():
+                if len(img.shape) == 3:
+                    images_dict[key] = np.mean(img, axis=-1).astype(np.uint8)
 
         all_images[i] = images_dict
 

@@ -215,7 +215,10 @@ def get_line_crossing(left_point, right_point, intersect):
     m2 = 0
     b2 = intersect
 
-    xi = (b1 - b2) / (m2 - m1)
+    if m1 == 0: # just put it half way in between 
+        xi = (right_point[0] + left_point[0]) / 2
+    else:
+        xi = (b1 - b2) / (m2 - m1)
     yi = m1 * xi + b1
 
     return xi, yi
@@ -416,9 +419,7 @@ def adjust_center(image, binary_image, center_point, axis, show=False, lsf_range
 def get_all_vertices(
     image,
     approx_points,
-    expected_spacing,
     binary_threshold_values,
-    expected_spacing_thresh=40,
     show=False,
     lsf_range=75,
     display_title="Image with vertices",
