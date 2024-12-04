@@ -10,6 +10,7 @@ from filmscope.util import load_dictionary
 from tqdm import tqdm 
 from PIL import Image
 import xarray as xr 
+import cv2
 
 # image_x_y_locs should be an n x 2 array, with x and y camera values for each image
 # x locatioins should be in the first column
@@ -71,7 +72,7 @@ def convert_to_array_image_numbers(image_numbers, total_images=48, exif_orientat
         image_x_y_locs[i] = _convert_to_array_image_number(number)
     return image_x_y_locs
 
-def load_image_set(filename, image_numbers=None,
+def load_image_set(filename, image_numbers=None, blank_filename=None,
                    downsample=1, frame_number=-1, debayer=True):
     dataset = xr.open_dataset(filename)
 
@@ -113,6 +114,25 @@ def load_image_set(filename, image_numbers=None,
 
         if debayer and dataset.sensor_chroma.data == "bayer_gbrg":
             images[number] = cv2.cvtColor(images[number], cv2.COLOR_BAYER_GB2RGB)
+
+    # if a blank filename is provided, subtract that out 
+    # this can likely be improved in the future
+    if blank_filename is not None:
+        blank_images_dict = load_image_set(filename=blank_filename,
+                                           image_numbers=image_numbers,
+                                           downsample=downsample)
+        exposure = xr.open_dataset(filename).exposure.data.flatten()[0]
+        blank_exposure = xr.open_dataset(blank_filename).exposure.data.flatten()[0]
+
+        for key, image in images.items():
+            blank_image = blank_images_dict[key]
+            # rehshape as blank image might not be same downsampled
+            # the same as the dataset images
+            # TODO: adjust this so we don't assume the same initial crop
+            blank_image = cv2.resize(blank_image, (image.shape[1], image.shape[0]))
+
+            image = image - blank_image * exposure / blank_exposure
+            images[key] = image
 
     return images
 

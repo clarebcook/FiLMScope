@@ -289,16 +289,8 @@ class FSDataset(Dataset):
                 image_numbers=self.image_numbers.tolist(),
                 downsample=self.downsample,
                 frame_number=self.frame_number,
+                blank_filename=self.blank_filename,
             )
-
-        if self.blank_filename is not None:
-            blank_images_dict = load_image_set(
-                filename=self.blank_filename,
-                image_numbers=self.image_numbers.tolist(),
-                downsample=self.downsample,
-            )
-            exposure = xr.open_dataset(self.image_filename).exposure.data.flatten()[0]
-            blank_exposure = xr.open_dataset(self.blank_filename).exposure.data.flatten()[0]
 
         images = None
         for i, (image_num, image) in enumerate(images_dict.items()):
@@ -307,19 +299,7 @@ class FSDataset(Dataset):
                     (len(images_dict), image.shape[0], image.shape[1], 1),
                     dtype=torch.float32,
                 )
-
-            if self.blank_filename is not None:
-                blank_image = blank_images_dict[int(image_num)] 
-                blank_image = blank_image.astype(np.float32)
-
-                # rehshape as blank image might not be same downsampled
-                # the same as the dataset images
-                blank_image = cv2.resize(blank_image, (image.shape[1], image.shape[0]))
-
-                image = image.astype(np.float32)
-                image = image / exposure - blank_image / (blank_exposure)
-                image = (image - np.min(image)) / (np.max(image) - np.min(image)) * 255 
-            
+                        
             images[i, :, :, 0] = torch.asarray(image.copy())
 
         return images
