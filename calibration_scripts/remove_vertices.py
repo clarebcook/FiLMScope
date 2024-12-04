@@ -24,7 +24,7 @@ current_image = None
 
 # if example_only is True, 
 # this will use the example calibration filename and not save deleted vertices
-example_only = True 
+example_only = True
 if example_only:
     calibration_filename = image_folder + '/calibration_information_example'
 else:
