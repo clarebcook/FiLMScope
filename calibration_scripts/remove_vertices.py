@@ -97,7 +97,7 @@ def remove_point(event):
                 calibration_manager.save_all_info()
         else:
             current_camera_index = current_camera_index + 1
-            current_camera = image_numbers[current_camera_index]
+        current_camera = image_numbers[current_camera_index]
         current_image = current_image_set[current_camera]
 
         if not example_only:
