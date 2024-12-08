@@ -4,6 +4,7 @@
 # set "example_only" to True to test the GUI without saving information
 
 from matplotlib import pyplot as plt
+import os
 
 from filmscope.util import load_image_set
 from filmscope.calibration import CalibrationInfoManager
@@ -19,6 +20,9 @@ if example_only:
     calibration_filename = path_to_data + '/calibration_data/calibration_information_example'
 else:
     calibration_filename = path_to_data + '/calibration_data/calibration_information'
+
+assert os.path.exists(calibration_filename)
+
 calibration_manager = CalibrationInfoManager(calibration_filename)
 image_numbers = calibration_manager.image_numbers
 
