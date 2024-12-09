@@ -113,14 +113,15 @@ def load_image_set(filename, image_numbers=None, blank_filename=None,
         images[number] = np.asarray(images[number])
 
         if debayer and dataset.sensor_chroma.data == "bayer_gbrg":
-            images[number] = cv2.cvtColor(images[number], cv2.COLOR_BAYER_GB2RGB)
+            images[number] = cv2.cvtColor(images[number], cv2.COLOR_BAYER_RG2RGB)
 
     # if a blank filename is provided, subtract that out 
     # this can likely be improved in the future
     if blank_filename is not None:
         blank_images_dict = load_image_set(filename=blank_filename,
                                            image_numbers=image_numbers,
-                                           downsample=downsample)
+                                           downsample=downsample,
+                                           debayer=debayer)
         exposure = xr.open_dataset(filename).exposure.data.flatten()[0]
         blank_exposure = xr.open_dataset(blank_filename).exposure.data.flatten()[0]
 
