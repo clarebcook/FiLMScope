@@ -106,7 +106,7 @@ def load_image_set(filename, image_numbers=None, blank_filename=None,
         single_image = dataset.sel(image_y=y_cam, image_x=x_cam)
 
         single_image = single_image.images.data
-        single_image = single_image[::downsample, ::downsample]
+        #single_image = single_image[::downsample, ::downsample]
         images[number] = Image.fromarray(single_image)
         # rotate the necessary amount
         images[number] = images[number].transpose(Image.ROTATE_90)
@@ -117,7 +117,9 @@ def load_image_set(filename, image_numbers=None, blank_filename=None,
             images[number] = cv2.cvtColor(images[number], cv2.COLOR_BAYER_RG2RGB)
 
         if ensure_grayscale and len(images[number].shape) > 2:
-            images[number] = np.mean(images[number], axis=-1)
+            images[number] = np.mean(images[number], axis=-1).astype(images[number].dtype)
+
+        images[number] = images[number][::downsample, ::downsample]
 
     # if a blank filename is provided, subtract that out 
     # this can likely be improved in the future

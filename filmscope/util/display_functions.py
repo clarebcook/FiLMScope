@@ -97,18 +97,26 @@ def play_video(frames_array, fps=30):
         time.sleep(max(remaining_time, 0))  # Control playback speed
 
 # TODO: right now this is hardcoded for our expected 6x8 layout
-def get_preview_image(image_filename, blank_filename=None, downsample=5, border_size=10):
+def get_preview_image(image_filename, blank_filename=None, downsample=5, border_size=10,
+                      *args, **kwargs):
     image_numbers = np.arange(48) 
     image_layout = (6, 8) 
     images = load_image_set(image_filename, image_numbers=image_numbers,
-                            blank_filename=blank_filename, downsample=downsample)
+                            blank_filename=blank_filename, downsample=downsample, *args, **kwargs)
     
         # for now assume all images are the same shape
     image_shape = images[0].shape
-    full_image_shape = (
-        image_layout[0] * (image_shape[0] + border_size) + border_size,
-        image_layout[1] * (image_shape[1] + border_size) + border_size,
-    )
+    if len(image_shape) == 3:
+        full_image_shape = (
+            image_layout[0] * (image_shape[0] + border_size) + border_size,
+            image_layout[1] * (image_shape[1] + border_size) + border_size,
+            3
+        )
+    else:
+        full_image_shape = (
+            image_layout[0] * (image_shape[0] + border_size) + border_size,
+            image_layout[1] * (image_shape[1] + border_size) + border_size,
+        )
     full_image = np.zeros(full_image_shape, dtype=np.uint8)
     for number in image_numbers:
         image = images[number]
