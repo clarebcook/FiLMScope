@@ -29,7 +29,7 @@ class FSDataset(Dataset):
         height_est=0,  # this should be set if ref_crop_center is set
         crop_centers=None,  # dictionary with image numbers as keys, (x, y) point in image coordinates as values
         crop_size=None,  # length 2 tuple with normalized crop size (i.e. values betwteen 0 and 1)
-        ensure_grayscale=False,
+        ensure_grayscale=True,
     ):
         self.is_single_image = len(load_dictionary(calibration_filename)["crop_indices"]) != 0
         self.calibration_filename = calibration_filename
@@ -299,7 +299,7 @@ class FSDataset(Dataset):
         for i, (image_num, image) in enumerate(images_dict.items()):
             # must be a cleaner way to do this 
             if len(image.shape) == 2:
-                image = image.unsqueeze(-1)
+                image = image[:, :, None]
             if images is None:
                 images = torch.zeros(
                     (len(images_dict), image.shape[0], image.shape[1], image.shape[2]),
