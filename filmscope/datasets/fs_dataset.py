@@ -48,9 +48,11 @@ class FSDataset(Dataset):
         # instead of torch tensors
         shape = (images.shape[0], images.shape[1], images.shape[2], 2)
         warped_shift_slope_maps = generate_normalized_shift_maps(
-            calibration_filename, type="warped_shift_slope", image_shape=images.shape[1:3])
+            calibration_filename, type="warped_shift_slope", image_shape=images.shape[1:3],
+            image_numbers=image_numbers)
         inv_inter_camera_maps = generate_normalized_shift_maps(
-            calibration_filename, type="inv_inter_camera", image_shape=images.shape[1:3])
+            calibration_filename, type="inv_inter_camera", image_shape=images.shape[1:3],
+            image_numbers=image_numbers)
 
         # identify the reference camera, which should be provided in every batch
         # and get the extra needed map
