@@ -11,7 +11,8 @@ import torch.optim as optim
 
 class RunManager:
     def __init__(self, config_dict, guide_map=None,
-                 prev_model=None, global_mask=None, run_name=None):
+                 prev_model=None, global_mask=None, run_name=None,
+                 noise=[0,0]):
         self.run_name = run_name
         self.config_dict = config_dict
         self.run_args = config_dict["run_args"]
@@ -42,6 +43,7 @@ class RunManager:
             crop_size=self.info["crop_size"],
             height_est=self.info["height_est"],
             blank_filename=blank_filename,
+            noise=noise,
         )
 
         self.image_loader = DataLoader(

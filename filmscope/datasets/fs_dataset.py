@@ -29,6 +29,7 @@ class FSDataset(Dataset):
         height_est=0,  # this should be set if ref_crop_center is set
         crop_centers=None,  # dictionary with image numbers as keys, (x, y) point in image coordinates as values
         crop_size=None,  # length 2 tuple with normalized crop size (i.e. values betwteen 0 and 1)
+        noise=[0, 0], # mean, std 
     ):
         self.is_single_image = len(load_dictionary(calibration_filename)["crop_indices"]) != 0
         self.calibration_filename = calibration_filename
@@ -39,7 +40,7 @@ class FSDataset(Dataset):
         self.image_filename = image_filename
         self.downsample = downsample
         self.frame_number = frame_number
-        images = self.prep_images()
+        images = self.prep_images(noise)
 
         # prepare the necessary maps
         # for legacy reasons these start out as numpy arrays
@@ -70,7 +71,7 @@ class FSDataset(Dataset):
             )
             crop_centers = {}
             for camera_number, crop_center in zip(image_numbers, centers):
-                crop_centers[camera_number] = crop_center
+                crop_centers[camera_number] = centers[camera_number]#crop_center
 
         if crop_centers is None:
             full_startx = round(images.shape[1] * crop_values[0])
@@ -201,11 +202,11 @@ class FSDataset(Dataset):
                 masks[i, endx:, :] = 0
 
                 crop_iis_maps[i] = crop_maps(
-                    inv_inter_camera_maps[i][None],
+                    inv_inter_camera_maps[image_number][None],
                     ref_map_crops,
                 )
                 crop_warp_maps[i] = crop_maps(
-                    warped_shift_slope_maps[i][None], ref_map_crops
+                    warped_shift_slope_maps[image_number][None], ref_map_crops
                 )
 
                 # find the shift from the reference center
@@ -277,7 +278,7 @@ class FSDataset(Dataset):
             "masks": self.masks, 
         }
 
-    def prep_images(self):
+    def prep_images(self, noise=[0,0]):
         if self.is_single_image:
             if self.downsample != 1:
                 raise ValueError("Only set up for downsample=1 with single images")
@@ -301,7 +302,9 @@ class FSDataset(Dataset):
                 )
                         
             images[i, :, :, 0] = torch.asarray(image.copy())
-
+        noise = torch.rand_like(images) * noise[0] + noise[1]
+        images = images + noise 
+        images = torch.clamp(images, 0, 255)
         return images
 
     # this could easily be modified to allow for switching image sets
