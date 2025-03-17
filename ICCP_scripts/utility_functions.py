@@ -1,11 +1,45 @@
 import numpy as np
+import neptune 
+from filmscope.config import neptune_project as project 
+from filmscope.config import neptune_api_token as api_token
+from PIL import Image
+from filmscope.util import get_timestamp
+import os 
+import shutil
+
+def download_image(run_id, image_type, 
+                   download_filename="temp_download_folder/image.png",
+                   return_run=False):
+    run = neptune.init_run(
+        with_id=run_id, mode="read-only", project=project, api_token=api_token
+    )
+
+    download_folder=f"temp_download_folder_{get_timestamp()}"
+
+    image_type = "depth"
+    run[f"reconstruction/values/{image_type}"].download_last(download_folder)
+    image_filename = download_folder + '/' + os.listdir(download_folder)[0]
+    image = np.asarray(Image.open(image_filename))
+
+    minv = run[f"reconstruction/values/{image_type}_min"].fetch_last()
+    maxv = run[f"reconstruction/values/{image_type}_max"].fetch_last()
+
+    image = image / 255 * (maxv - minv) + minv 
+
+    shutil.rmtree(download_folder)
+
+    if not return_run:
+        return image
+
+    else:
+        return image, run
 
 def count_needed_runs(experiment_dict, repeats, all_noise_stds, num_cameras):
     partials = []
     partial_cameras = []
     # and ideally if there's an incomplete set 
     # we'd pick up there 
-
+    # num_cameras = 4 
     tracked_ids = []
     completed = 0
     for id, item in experiment_dict.items():
