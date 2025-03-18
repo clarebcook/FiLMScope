@@ -25,7 +25,7 @@ else:
 print(experiment_dict_filename) 
 
 all_num_cameras = [48, 40, 30, 20, 10, 5, 4, 3]
-all_repeats = [1, 1, 1, 1, 1, 1, 1, 1]
+all_repeats = [1, 1, 1, 2, 3, 5, 5, 5]
 all_noise_stds = [0, 5, 10]
 
 
