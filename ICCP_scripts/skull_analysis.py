@@ -34,7 +34,7 @@ for key, item in tqdm(experiment_dict.items()):
 
 fig, axes = plt.subplots(3, 5) 
 noise_levels = [1, 5, 10]
-num_cameras = [48, 40, 30, 20, 10]
+num_cameras = [48, 30, 20, 10, 3]
 for i, nl in enumerate(noise_levels):
     for j, nc in enumerate(num_cameras):
         ax = axes[i,j] 

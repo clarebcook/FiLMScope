@@ -38,8 +38,8 @@ all_num_cameras = [4, 3, 48, 40, 30, 20, 10, 5]
 all_repeats = [3, 3, 1, 1, 1, 2, 3, 5]
 all_noise_stds = [1, 5, 10, 15]
 
-all_num_cameras = [48, 40, 30, 20, 10, 5, 4, 3]
-all_repeats = [1, 1, 1, 1, 1, 1, 1, 1]
+all_num_cameras = [48, 40, 30, 20, 8, 15, 10, 5, 4, 3]
+all_repeats = [1, 1, 1, 3, 3, 3, 3, 3, 4, 3]
 all_noise_stds = [1, 5, 10]
 
 # all_num_cameras = [10, 8, 5, 4, 3]

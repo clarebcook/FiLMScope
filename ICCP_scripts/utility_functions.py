@@ -2,13 +2,15 @@ import numpy as np
 import neptune 
 from filmscope.config import neptune_project as project 
 from filmscope.config import neptune_api_token as api_token
+from filmscope.config import path_to_data
 from PIL import Image
 from filmscope.util import get_timestamp
+from filmscope.calibration import CalibrationInfoManager
 import os 
 import shutil
 
 def download_image(run_id, image_type, 
-                   download_filename="temp_download_folder/image.png",
+                   # download_filename="temp_download_folder/image.png",
                    return_run=False):
     run = neptune.init_run(
         with_id=run_id, mode="read-only", project=project, api_token=api_token
@@ -16,7 +18,7 @@ def download_image(run_id, image_type,
 
     download_folder=f"temp_download_folder_{get_timestamp()}"
 
-    image_type = "depth"
+    # image_type = "depth"
     run[f"reconstruction/values/{image_type}"].download_last(download_folder)
     image_filename = download_folder + '/' + os.listdir(download_folder)[0]
     image = np.asarray(Image.open(image_filename))
@@ -33,6 +35,32 @@ def download_image(run_id, image_type,
 
     else:
         return image, run
+
+
+def remove_global_tilt(height_map):#, show=False):
+    height_map = height_map.copy()
+    dim0 = np.mean(height_map, axis=0)
+    # plt.plot(dim0)
+
+    slope0, intercept0 = np.polyfit(np.arange(len(dim0)), dim0, 1)
+
+    # plt.plot(np.arange(len(dim0)) * slope0 + intercept0)
+
+    for i, row in enumerate(height_map):
+        height_map[i] = row - np.arange(len(row)) * slope0 
+
+    dim1 = np.mean(height_map, axis=1) 
+    slope1, intercept1 = np.polyfit(np.arange(len(dim1)), dim1, 1)
+
+    # plt.figure()
+    # plt.plot(dim1) 
+    # plt.plot(np.arange(len(dim1)) * slope1 + intercept1) 
+
+    for j in range(height_map.shape[1]):
+        col = height_map[:, j] 
+        height_map[:, j] = col - np.arange(len(col)) * slope1 
+
+    return height_map
 
 def count_needed_runs(experiment_dict, repeats, all_noise_stds, num_cameras):
     partials = []
@@ -84,3 +112,28 @@ def count_needed_runs(experiment_dict, repeats, all_noise_stds, num_cameras):
         partials.append(all_noise_stds)
         partial_cameras.append(None)
     return partials, partial_cameras
+
+
+
+def get_reference_image(run):
+    # if it's not a string, I'm assuming it's a real run
+    if type(run) == str:
+        run = neptune.init_run(
+            with_id=run, mode="read-only", project=project, api_token=api_token
+        )
+    
+    calibration_filename = path_to_data + run["sample/calibration_filename"].fetch()
+    cm = CalibrationInfoManager(calibration_filename) 
+    reference_camera = cm.reference_camera
+
+    download_filename = f"temp_download_file_{get_timestamp()}.png"
+    run[f"sample/images/image_{reference_camera}"].download(download_filename) 
+
+    image = np.asarray(Image.open(download_filename)) 
+
+    os.remove(download_filename)
+    return image 
+
+    
+
+        

@@ -7,6 +7,7 @@ import torch
 import torch.nn.functional as F
 from tqdm import tqdm 
 import os 
+import matplotlib
 
 # run_id = "IC-42"
 # image_type = "depth" 
@@ -63,7 +64,7 @@ for key, item in tqdm(experiment_dict.items()):
 
 fig, axes = plt.subplots(3, 5) 
 noise_levels = [1, 5, 10]
-num_cameras = [48, 40, 30, 20,]
+num_cameras = [48, 40, 30, 20, 10]
 for i, nl in enumerate(noise_levels):
     for j, nc in enumerate(num_cameras):
         ax = axes[i,j] 
@@ -76,7 +77,8 @@ for i, nl in enumerate(noise_levels):
             save_name = save_folder + f'/{key}_depth.npy'
             image = np.load(save_name)
             #ax = axes[i,j] 
-            ax.imshow(image, cmap='turbo') 
+            ax.imshow(image[200:800, :600], cmap='turbo',
+                      clim=(-3.05, -0.6)) 
             if nc == 48 and nl == 1:
                 base_key = key
             #ax.set_xticks([]) 
@@ -109,3 +111,33 @@ for i, nl in enumerate(noise_levels):
             scores[i, j] = score
 
             break
+
+
+def mse(image0, image1):
+    diff = image0 - image1 
+    return np.mean(diff**2)
+
+
+# use all in a plot 
+cmap = matplotlib.cm.turbo
+num_cameras = [48, 40, 30, 20, 10, 5, 4, 3]
+
+plt.figure()
+for i, nl in enumerate(noise_levels):
+    for j, nc in enumerate(num_cameras):
+        color = cmap((nc - 3) / 45)
+
+        count = 0
+        avg_score = 0
+        for key, item in experiment_dict.items():
+            if len(item["cameras"]) != nc or item["noise"][0] != nl:
+                continue
+
+            save_name = save_folder + f'/{key}_depth.npy'
+            image = np.load(save_name)
+            score = ssim(base_image[200:800, :600], image[200:800, :600]) 
+            score = mse(base_image[200:800, :600], image[200:800, :600]) 
+            avg_score += score 
+            count += 1
+        avg_score  = avg_score / count 
+        plt.scatter([nl], [avg_score], color=color)
