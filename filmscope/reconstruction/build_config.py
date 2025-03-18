@@ -41,6 +41,16 @@ default_run_args = {
         "reuse_model": True,  # only for videos
     }
 
+
+default_crop_info = {
+    "depth_range": None, # (min_height, max_height)
+    "height_est": None, # float, within depth_range 
+    "ref_crop_center": None, #(centerx, centery) between 0 and 1
+    "crop_size": None, #(sizex, sizey) between 0 and 1 
+    "crop_name": None, # only needed if saving 
+    "save": None, # bool 
+}
+
 cam_num_sets = {
         "all": np.arange(48),
         "6x6": np.arange(6, 42),
@@ -66,8 +76,9 @@ cam_num_sets = {
 def generate_config_dict(gpu_number, sample_name, use_neptune=False,
                          downsample=1, camera_set="all",
                          frame_number=-1,
-                         use_individual_crops=True, crop_name=None, crop_number=None, log_description="",
-                         loss_weights={}, run_args={}, custom_image_numbers=None):
+                         use_individual_crops=True, load_crop_entry=False, log_description="",
+                         loss_weights={}, run_args={}, custom_image_numbers=None,
+                         custom_crop_info={}):
     if custom_image_numbers is not None:
         camera_set = "custom"
         cam_num_sets["custom"] = custom_image_numbers
@@ -85,27 +96,20 @@ def generate_config_dict(gpu_number, sample_name, use_neptune=False,
             )
 
         else:
-            # option 2: specify values
-            # any of these can be set to None, and values will be taken
-            # from the sample info
-            # TODO: adjust so these are not set from inside the function
-            depth_range = None
-            height_est = None
-            ref_crop_center = None #
-            crop_size = None 
-            crop_name = None
+            # any values that are set to None 
+            # will be pulled from the information saved with the sample
+            for key in default_crop_info:
+                if key not in custom_crop_info:
+                    custom_crop_info[key] = default_crop_info[key]
 
-            # can choose to save this for later
-            save = False
-            crop_name = None
             crop_info, entry_number = add_individual_crop(
                 sample_name,
-                crop_name,
-                save=save,
-                depth_range=depth_range,
-                height_est=height_est,
-                ref_crop_center=ref_crop_center,
-                crop_size=crop_size,
+                custom_crop_info["crop_name"],
+                save=custom_crop_info["save"],
+                depth_range=custom_crop_info["depth_range"],
+                height_est=custom_crop_info["height_est"],
+                ref_crop_center=custom_crop_info["ref_crop_center"],
+                crop_size=custom_crop_info["crop_size"],
             )
 
         crop_info["crop_entry_number"] = entry_number
