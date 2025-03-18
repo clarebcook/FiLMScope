@@ -3,6 +3,7 @@ from matplotlib import pyplot as plt
 import numpy as np
 import time 
 from IPython.display import display, clear_output
+from filmscope.util import load_image_set
 
 ## functions for use during calibration, to look at images with calibrated lines and points
 # since this is for display purposes
@@ -94,3 +95,32 @@ def play_video(frames_array, fps=30):
         passed_time = time.time() - start_time 
         remaining_time = 1 / fps - passed_time
         time.sleep(max(remaining_time, 0))  # Control playback speed
+
+# TODO: right now this is hardcoded for our expected 6x8 layout
+def get_preview_image(image_filename, blank_filename=None, downsample=5, border_size=10):
+    image_numbers = np.arange(48) 
+    image_layout = (6, 8) 
+    images = load_image_set(image_filename, image_numbers=image_numbers,
+                            blank_filename=blank_filename, downsample=downsample)
+    
+        # for now assume all images are the same shape
+    image_shape = images[0].shape
+    full_image_shape = (
+        image_layout[0] * (image_shape[0] + border_size) + border_size,
+        image_layout[1] * (image_shape[1] + border_size) + border_size,
+    )
+    full_image = np.zeros(full_image_shape, dtype=np.uint8)
+    for number in image_numbers:
+        image = images[number]
+
+        ax_num0 = image_layout[0] - 1 - (number % image_layout[0])
+        ax_num1 = int(number / image_layout[0])
+
+        start0 = border_size + ax_num0 * (image_shape[0] + border_size)
+        end0 = start0 + image_shape[0]
+        start1 = border_size + ax_num1 * (image_shape[1] + border_size)
+        end1 = start1 + image_shape[1]
+
+        full_image[start0:end0, start1:end1] = image
+
+    return full_image

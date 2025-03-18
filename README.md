@@ -39,6 +39,12 @@ conda env create -f environment.yml
 conda activate filmscope
 conda develop .
 ```
+
+Note that using `conda develop` requires install `conda-build`. This can be done with: 
+```
+conda install conda-build
+```
+
 3. Set variables in the config file 
 
 Navigate to `filmscope/config.py`. Change `path_to_data` to the location where the downloaded data is stored. To log runs with Neptune.ai, `neptune_project` and `neptune_api_token` must be filled in. However, that is not needed to run the example scripts. 

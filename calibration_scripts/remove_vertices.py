@@ -5,6 +5,7 @@
 import numpy as np
 from matplotlib import pyplot as plt
 import cv2
+import os
 
 from filmscope.util import load_graph_images
 from filmscope.config import path_to_data
@@ -24,11 +25,13 @@ current_image = None
 
 # if example_only is True, 
 # this will use the example calibration filename and not save deleted vertices
-example_only = True 
+example_only = True
 if example_only:
     calibration_filename = image_folder + '/calibration_information_example'
 else:
     calibration_filename = image_folder + '/calibration_information'
+
+assert os.path.exists(calibration_filename)
 
 # finish setup  
 display_downsample = 8
@@ -87,13 +90,14 @@ def remove_point(event):
                    folder=image_folder,
                    image_numbers=image_numbers,
                    plane_numbers=[current_plane],
-                   downsample=display_downsample
+                   downsample=display_downsample,
+                   calibration_filename=calibration_filename
                )[0]
             if not example_only:
                 calibration_manager.save_all_info()
         else:
             current_camera_index = current_camera_index + 1
-            current_camera = image_numbers[current_camera_index]
+        current_camera = image_numbers[current_camera_index]
         current_image = current_image_set[current_camera]
 
         if not example_only:

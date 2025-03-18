@@ -14,7 +14,7 @@ image_filename = path_to_data + '/calibration_data/graph_03_20240812_114900_196.
 
 # if example_only is True, 
 # this will use the example calibration filename and not save deleted vertices
-example_only = True 
+example_only = True
 if example_only:
     calibration_filename = path_to_data + '/calibration_data/calibration_information_example'
 else:
