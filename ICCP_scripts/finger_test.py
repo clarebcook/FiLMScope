@@ -75,8 +75,8 @@ use_neptune = True
 # all_repeats = [1, 1, 2, 3, 4, 4, 5, 10, 10]
 # all_noise_stds = [5, 10, 20, 40, 70, 100]
 
-all_num_cameras = [3, 4, 48, 40, 30, 20, 10, 5]
-all_repeats = [5, 5, 1, 1, 1, 2, 4, 8]
+all_num_cameras = [4, 3, 48, 40, 30, 20, 10, 5]
+all_repeats = [8, 8, 1, 1, 2, 2, 4, 8]
 all_noise_stds = [1, 5, 10, 15]
 
 # select gpu number to run on
@@ -87,7 +87,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = gpu_number
 sample = "finger"
 
 for num_cameras, repeats in zip(all_num_cameras, all_repeats):
-    iterations = min(int(500 * 48 / num_cameras), 4000)
+    iterations = min(int(500 * 48 / num_cameras), 2000)
     # check how many have already been done
     # ig for a repeat to count, 
     # it needs to have happened at all the noise levels
