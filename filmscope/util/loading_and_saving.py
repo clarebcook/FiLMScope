@@ -21,7 +21,6 @@ def _clean_dict_keys_for_saving(dictionary):
             temp_dict[key] = item
     return temp_dict
 
-
 # function to make sure every numpy array in a value or dict
 # is converted to a list for saving
 def _recursive_numpy_to_list(item):

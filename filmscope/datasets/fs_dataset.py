@@ -29,10 +29,12 @@ class FSDataset(Dataset):
         height_est=0,  # this should be set if ref_crop_center is set
         crop_centers=None,  # dictionary with image numbers as keys, (x, y) point in image coordinates as values
         crop_size=None,  # length 2 tuple with normalized crop size (i.e. values betwteen 0 and 1)
+        ensure_grayscale=True,
         noise=[0, 0], # mean, std 
     ):
         self.is_single_image = len(load_dictionary(calibration_filename)["crop_indices"]) != 0
         self.calibration_filename = calibration_filename
+        self.ensure_grayscale = ensure_grayscale
 
         self.blank_filename = blank_filename
         
@@ -47,9 +49,11 @@ class FSDataset(Dataset):
         # instead of torch tensors
         shape = (images.shape[0], images.shape[1], images.shape[2], 2)
         warped_shift_slope_maps = generate_normalized_shift_maps(
-            calibration_filename, type="warped_shift_slope", image_shape=images.shape[1:3])
+            calibration_filename, type="warped_shift_slope", image_shape=images.shape[1:3],
+            image_numbers=image_numbers)
         inv_inter_camera_maps = generate_normalized_shift_maps(
-            calibration_filename, type="inv_inter_camera", image_shape=images.shape[1:3])
+            calibration_filename, type="inv_inter_camera", image_shape=images.shape[1:3],
+            image_numbers=image_numbers)
 
         # identify the reference camera, which should be provided in every batch
         # and get the extra needed map
@@ -291,17 +295,21 @@ class FSDataset(Dataset):
                 downsample=self.downsample,
                 frame_number=self.frame_number,
                 blank_filename=self.blank_filename,
+                ensure_grayscale=self.ensure_grayscale
             )
 
         images = None
         for i, (image_num, image) in enumerate(images_dict.items()):
+            # must be a cleaner way to do this 
+            if len(image.shape) == 2:
+                image = image[:, :, None]
             if images is None:
                 images = torch.zeros(
-                    (len(images_dict), image.shape[0], image.shape[1], 1),
+                    (len(images_dict), image.shape[0], image.shape[1], image.shape[2]),
                     dtype=torch.float32,
                 )
                         
-            images[i, :, :, 0] = torch.asarray(image.copy())
+            images[i] = torch.asarray(image.copy())
         noise = torch.rand_like(images) * noise[0] + noise[1]
         images = images + noise 
         images = torch.clamp(images, 0, 255)

@@ -76,8 +76,9 @@ cam_num_sets = {
 def generate_config_dict(gpu_number, sample_name, use_neptune=False,
                          downsample=1, camera_set="all",
                          frame_number=-1,
-                         use_individual_crops=True, load_crop_entry=False, log_description="",
+                         use_individual_crops=True, log_description="",
                          loss_weights={}, run_args={}, custom_image_numbers=None,
+                         crop_name=None, crop_number=None, 
                          custom_crop_info={}):
     if custom_image_numbers is not None:
         camera_set = "custom"
@@ -89,10 +90,8 @@ def generate_config_dict(gpu_number, sample_name, use_neptune=False,
     sample_info["camera_set"] = camera_set
 
     if use_individual_crops:
-        if load_crop_entry:
+        if crop_name is not None or crop_number is not None:
             # option 1: specify entry number or name for previous entry
-            crop_number = None
-            crop_name = "full"
             crop_info, entry_number = get_individual_crop(
                 sample_name, crop_name, crop_number
             )

@@ -10,7 +10,7 @@ from utility_functions import count_needed_runs
 # select the name of a sample previously saved using "save_new_sample.ipynb",
 # the gpu number, and whether or not to log with neptune.ai
 sample_name = "stamp_02_08"
-gpu_number = "0"
+gpu_number = "1"
 use_neptune = True
 
 os.environ["CUDA_VISIBLE_DEVICES"] = gpu_number
@@ -56,7 +56,7 @@ for num_cameras, repeats in zip(all_num_cameras, all_repeats):
 
             config_dict = generate_config_dict(sample_name=sample_name, gpu_number=gpu_number, downsample=1,
                                             camera_set="all", use_neptune=use_neptune,
-                                            load_crop_entry=False, 
+                                            #load_crop_entry=False, 
                                             # frame_number=frame_number,
                                             run_args={"iters": iterations, "batch_size": 12, "num_depths": 64,
                                                         "display_freq": 20},

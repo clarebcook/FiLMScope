@@ -64,6 +64,7 @@ class SystemCalibrator:
                 ref_plane_image_folder,
                 image_numbers=camera_numbers,
                 plane_numbers=[reference_plane],
+                calibration_filename=calibration_filename,
             )[0]
         else:
             self.ref_plane_images = None
@@ -100,7 +101,7 @@ class SystemCalibrator:
         )
 
         if show:
-            ref_image = self.ref_plane_images[reference_camera]
+            ref_image = self.ref_plane_images[self.reference_camera]
             image = self.ref_plane_images[camera_number]
             display_with_points(
                 image,

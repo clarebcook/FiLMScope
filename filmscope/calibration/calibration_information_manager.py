@@ -50,6 +50,7 @@ class CalibrationInfoManager(metaclass=PropertyDictMeta):
     def __init__(self, filename, legacy_folder=None, allow_save=True):
         self.filename = filename
         self.allow_save = allow_save
+        self._image_numbers = None
         # check if the filename exists, and if so, load it
         if os.path.exists(self.filename):
             self.load_all_info()
@@ -103,12 +104,26 @@ class CalibrationInfoManager(metaclass=PropertyDictMeta):
         self.save_all_info()
 
     @property 
+    def properties(self):
+        properties = (self._basic_properties_ + self._dict_properties_ + 
+                      ["filename", "image_numbers", "plane_numbers", "is_single_image"])
+        return properties
+
+    @property 
     # this is using the identifed vertices to identify
     # which image numbers were used in calibration
+    # this creates a default if 
     def image_numbers(self):
-        plane0 = self.plane_numbers[0] 
-        vert_dict = self.all_vertices[plane0]
-        return [i for i in vert_dict]
+        if self._image_numbers is None:
+            plane0 = self.plane_numbers[0] 
+            vert_dict = self.all_vertices[plane0]
+            return [i for i in vert_dict]
+        else:
+            return self._image_numbers
+
+    @image_numbers.setter
+    def image_numbers(self, val):
+        self._image_numbers = np.asarray(val)
 
     @property 
     def plane_numbers(self):

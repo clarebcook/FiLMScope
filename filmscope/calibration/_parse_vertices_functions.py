@@ -89,6 +89,7 @@ def find_approx_points(lines_dict):
             all_points.append(point)
     return np.asarray(all_points)
 
+
 # this will return True if the area around center_point is determined to have
 # a line along the "axis" direction.
 # both of which are in display coordinates
@@ -125,39 +126,40 @@ def determine_line_validity(
     if m2 > m2_thresh:
         is_line = False
 
-    # Step 3: Then check whether LSF takes correct shape right before and after low point in ESF
-    lsf = lsf / np.max(np.abs(subimage))
-    min_avg_number = 5
-    avg_number = 20
-    min_index = np.where(esf == np.min(esf))[0][0]
-    min_index2 = np.where(esf == np.min(esf))[0][-1]
-    # TODO get rid of this
-    if min_index == 0:
-        min_index = 1
+    # # Step 3: Then check whether LSF takes correct shape right before and after low point in ESF
+    # 2024/12/27 it would be good to find a way to do this, but this is causing too many missed vertices
+    # lsf = lsf / np.max(np.abs(subimage))
+    # min_avg_number = 5
+    # avg_number = 20
+    # min_index = np.where(esf == np.min(esf))[0][0]
+    # min_index2 = np.where(esf == np.min(esf))[0][-1]
+    # # TODO get rid of this
+    # if min_index == 0:
+    #     min_index = 1
 
-    if min_index < min_avg_number or min_index2 > len(esf) - min_avg_number:
-        is_line = False
+    # if min_index < min_avg_number or min_index2 > len(esf) - min_avg_number:
+    #     is_line = False
 
-    start = max(min_index - avg_number, 0)
-    sum_below = np.sum(lsf[start:min_index])
-    if sum_below > m2 / 3:  # maybe use something else?
-        is_line = False
-    end = min(min_index2 + 1 + avg_number, len(lsf))
-    sum_above = np.sum(lsf[min_index2:end])
-    if sum_above < -m2 / 3:
-        is_line = False
+    # start = max(min_index - avg_number, 0)
+    # sum_below = np.sum(lsf[start:min_index])
+    # if sum_below > m2 / 3:  # maybe use something else?
+    #     is_line = False
+    # end = min(min_index2 + 1 + avg_number, len(lsf))
+    # sum_above = np.sum(lsf[min_index2:end])
+    # if sum_above < -m2 / 3:
+    #     is_line = False
 
     if show or (show_if_failed and not is_line):
         plt.figure()
         plt.plot(esf, label="esf")
         plt.axhline(y=0)
-        plt.axvline(x=min_index, linestyle="--", color="black")
-        plt.axvline(x=min_index2, linestyle="--", color="black")
-        plt.plot(np.arange(avg_number) + min_index + 1, np.ones(avg_number) * sum_above)
-        plt.plot(
-            np.arange(avg_number) + min_index - avg_number,
-            np.ones(avg_number) * sum_below,
-        )
+        # plt.axvline(x=min_index, linestyle="--", color="black")
+        # plt.axvline(x=min_index2, linestyle="--", color="black")
+        # plt.plot(np.arange(avg_number) + min_index + 1, np.ones(avg_number) * sum_above)
+        # plt.plot(
+        #     np.arange(avg_number) + min_index - avg_number,
+        #     np.ones(avg_number) * sum_below,
+        # )
         plt.plot(lsf, label="lsf")
         plt.legend()
         plt.show()
@@ -165,7 +167,11 @@ def determine_line_validity(
         plt.figure()
         plt.imshow(subimage)
         plt.colorbar()
-        plt.title(f"is this a line? {is_line}. m2: {m2}. deviation: {deviation}")
+        plt.title(
+            "is this a line? {}. m2: {:.2f}. deviation: {:.2f}".format(
+                is_line, m2, deviation
+            )
+        )
         plt.show()
 
     return is_line
@@ -182,7 +188,7 @@ def _get_surrounding_indices(line_values, point, ignore_warning=False):
         if p1 >= point and p2 <= point:
             return i, i + 1
 
-    if not ignore_warning:  
+    if not ignore_warning:
         print("may be adjusting center at non-line area")
         print("failing.")
     return -1, -1
@@ -215,7 +221,10 @@ def get_line_crossing(left_point, right_point, intersect):
     m2 = 0
     b2 = intersect
 
-    xi = (b1 - b2) / (m2 - m1)
+    if m1 == 0:  # just put it half way in between
+        xi = (right_point[0] + left_point[0]) / 2
+    else:
+        xi = (b1 - b2) / (m2 - m1)
     yi = m1 * xi + b1
 
     return xi, yi
@@ -274,7 +283,7 @@ def get_lsf_esf(
         plt.show()
 
     esf = np.mean(subimage, axis=axis)
-    
+
     # 2023/02/09 trying new way of calculating lsf
     lsf = np.zeros(len(esf))
     lsf[1:-1] = esf[2:] / 2 - esf[:-2] / 2
@@ -345,13 +354,13 @@ def get_lsf_esf(
 # this is an improvement on a previous function
 # which we might want to go back and change
 # TODO: don't always use default lsf_range
-def adjust_center(image, binary_image, center_point, axis, show=False, lsf_range=150):
+def adjust_center(image, binary_image, center_point, axis, debug=False, lsf_range=150):
     lsf, esf, xstart, xend, ystart, yend, sub_image = get_lsf_esf(
         image,
         center_point,
         axis=axis,
         return_indices=True,
-        show=False,
+        show=debug,
         plot_range=lsf_range,
         avg_num=lsf_range,  # TODO: think about this more?
         ignore_warning=True,
@@ -366,7 +375,7 @@ def adjust_center(image, binary_image, center_point, axis, show=False, lsf_range
         center_point,
         axis=axis,
         return_indices=True,
-        show=False,
+        show=debug,
         plot_range=lsf_range,
         ignore_warning=True,
     )
@@ -381,8 +390,8 @@ def adjust_center(image, binary_image, center_point, axis, show=False, lsf_range
         center_point=center_point,
         esf=esf2,
         lsf=lsf2,
-        show=False,
-        show_if_failed=False,
+        show=debug,
+        show_if_failed=debug,
     )
     if not valid:
         # determine_line_validity(binary_image, center_point, axis, esf2, lsf2, show=True)
@@ -396,7 +405,7 @@ def adjust_center(image, binary_image, center_point, axis, show=False, lsf_range
     indexL = indexR - 1
     midpoint = get_line_crossing((indexR, lsf[indexR]), (indexL, lsf[indexL]), 0)
 
-    if show:
+    if debug:
         plt.figure()
         plt.plot(lsf, ".-", label="lsf")
         plt.plot(np.zeros(len(lsf)))
@@ -416,13 +425,12 @@ def adjust_center(image, binary_image, center_point, axis, show=False, lsf_range
 def get_all_vertices(
     image,
     approx_points,
-    expected_spacing,
     binary_threshold_values,
-    expected_spacing_thresh=40,
     show=False,
     lsf_range=75,
     display_title="Image with vertices",
     display_downsample=1,
+    debug=False,
 ):
     binary_image = make_binary_image(image, binary_threshold_values)
 
@@ -430,10 +438,10 @@ def get_all_vertices(
     vertices = []
     for point in approx_points:
         dir1_adj = adjust_center(
-            image, binary_image, point, axis=1, lsf_range=lsf_range
+            image, binary_image, point, axis=1, lsf_range=lsf_range, debug=debug
         )
         dir0_adj = adjust_center(
-            image, binary_image, point, axis=0, lsf_range=lsf_range
+            image, binary_image, point, axis=0, lsf_range=lsf_range, debug=debug
         )
 
         if -1 in dir0_adj or -1 in dir1_adj:
