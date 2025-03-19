@@ -26,7 +26,7 @@ else:
 print(experiment_dict_filename) 
 
 all_num_cameras = [48, 40, 30, 20, 10, 5, 4, 3]
-all_repeats = [1, 1, 1, 1, 2, 2, 2, 2]
+all_repeats = [1, 1, 1, 3, 4, 8, 8, 8]
 all_noise_stds = [1, 5, 10, 20, 30]
 
 
@@ -56,10 +56,10 @@ for num_cameras, repeats in zip(all_num_cameras, all_repeats):
 
             config_dict = generate_config_dict(sample_name=sample_name, gpu_number=gpu_number, downsample=1,
                                             camera_set="all", use_neptune=use_neptune,
-                                            load_crop_entry=False, 
+                                            #load_crop_entry=False, 
                                             frame_number=frame_number,
                                             run_args={"iters": iterations, "batch_size": 12, "num_depths": 64,
-                                                        "display_freq": 500},
+                                                        "display_freq": 800},
                                             #custom_crop_info={'crop_size': (0.52, 0.59), "ref_crop_center": (0.42, 0.65)}
                                             )
             run_manager = RunManager(config_dict, noise=noise)

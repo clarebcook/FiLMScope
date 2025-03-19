@@ -10,7 +10,7 @@ from utility_functions import count_needed_runs
 # select the name of a sample previously saved using "save_new_sample.ipynb",
 # the gpu number, and whether or not to log with neptune.ai
 sample_name = "stamp_02_08"
-gpu_number = "1"
+gpu_number = "0"
 use_neptune = True
 
 os.environ["CUDA_VISIBLE_DEVICES"] = gpu_number
@@ -25,8 +25,8 @@ else:
 print(experiment_dict_filename) 
 
 all_num_cameras = [48, 40, 30, 20, 10, 5, 4, 3]
-all_repeats = [1, 1, 1, 2, 3, 5, 5, 5]
-all_noise_stds = [0, 5, 10]
+all_repeats = [1, 1, 1, 1, 3, 3, 3, 3]
+all_noise_stds = [0, 5, 10, 18, 25, 30, 40]
 
 
 
@@ -68,7 +68,7 @@ for num_cameras, repeats in zip(all_num_cameras, all_repeats):
             # perform reconstruction
             iters = config_dict["run_args"]["iters"]
             losses = []
-            display_freq = 100
+            display_freq = 10
             for i in tqdm(range(iters)):
                 log = (i % config_dict["run_args"]["display_freq"] == 0) or (i == iters - 1)
                 mask_images, warp_images, numbers, outputs, loss_values = run_manager.run_epoch(
