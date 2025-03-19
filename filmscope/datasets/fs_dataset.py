@@ -75,7 +75,7 @@ class FSDataset(Dataset):
             )
             crop_centers = {}
             for camera_number, crop_center in zip(image_numbers, centers):
-                crop_centers[camera_number] = centers[camera_number]#crop_center
+                crop_centers[camera_number] = crop_center
 
         if crop_centers is None:
             full_startx = round(images.shape[1] * crop_values[0])
@@ -206,11 +206,11 @@ class FSDataset(Dataset):
                 masks[i, endx:, :] = 0
 
                 crop_iis_maps[i] = crop_maps(
-                    inv_inter_camera_maps[image_number][None],
+                    inv_inter_camera_maps[i][None],
                     ref_map_crops,
                 )
                 crop_warp_maps[i] = crop_maps(
-                    warped_shift_slope_maps[image_number][None], ref_map_crops
+                    warped_shift_slope_maps[i][None], ref_map_crops
                 )
 
                 # find the shift from the reference center
