@@ -14,7 +14,7 @@ from utility_functions import count_needed_runs
 
 # select sample name and gpu number
 sample_name = "knuckle_video"
-gpu_number = "3"
+gpu_number = "1"
 
 os.environ["CUDA_VISIBLE_DEVICES"] = gpu_number
 
@@ -40,6 +40,11 @@ all_noise_stds = [1, 5, 10, 15]
 
 all_num_cameras = [48, 40, 30, 20, 8, 15, 10, 5, 4, 3]
 all_repeats = [1, 1, 1, 3, 3, 3, 3, 3, 4, 3]
+all_noise_stds = [1, 5, 10]
+
+
+all_num_cameras = [20, 10, 5]
+all_repeats = [6, 6, 6]
 all_noise_stds = [1, 5, 10]
 
 # all_num_cameras = [10, 8, 5, 4, 3]

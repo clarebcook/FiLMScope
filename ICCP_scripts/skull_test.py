@@ -12,11 +12,11 @@ from utility_functions import count_needed_runs
 sample_name = "skull_tool_4x4_08_12"
 frame_number = 700
 gpu_number = "2"
-use_neptune = True
+use_neptune = False
 
 os.environ["CUDA_VISIBLE_DEVICES"] = gpu_number
 
-experiment_dict_filename = log_folder + f'/skull_frame_{frame_number}.json'
+experiment_dict_filename = log_folder + f'/skull_frame_{frame_number}_v2.json'
 if os.path.exists(experiment_dict_filename):
     experiment_dict = load_dictionary(experiment_dict_filename) 
 else:
@@ -26,8 +26,9 @@ else:
 print(experiment_dict_filename) 
 
 all_num_cameras = [48, 40, 30, 20, 10, 5, 4, 3]
-all_repeats = [1, 1, 1, 3, 4, 8, 8, 8]
-all_noise_stds = [1, 5, 10, 20, 30]
+all_repeats = [1, 1, 1, 1, 2, 3, 3, 3]
+all_noise_stds = [1, 5, 10, 18]
+all_noise_stds = [15, 18]
 
 
 for num_cameras, repeats in zip(all_num_cameras, all_repeats):
@@ -53,13 +54,13 @@ for num_cameras, repeats in zip(all_num_cameras, all_repeats):
             noise = [noise_std, 0]
 
 
-
             config_dict = generate_config_dict(sample_name=sample_name, gpu_number=gpu_number, downsample=1,
-                                            camera_set="all", use_neptune=use_neptune,
+                                            camera_set="custom", use_neptune=use_neptune,
                                             #load_crop_entry=False, 
                                             frame_number=frame_number,
                                             run_args={"iters": iterations, "batch_size": 12, "num_depths": 64,
                                                         "display_freq": 800},
+                                            custom_image_numbers=custom_image_numbers, 
                                             #custom_crop_info={'crop_size': (0.52, 0.59), "ref_crop_center": (0.42, 0.65)}
                                             )
             run_manager = RunManager(config_dict, noise=noise)
@@ -67,7 +68,7 @@ for num_cameras, repeats in zip(all_num_cameras, all_repeats):
             # perform reconstruction
             iters = config_dict["run_args"]["iters"]
             losses = []
-            display_freq = 100
+            display_freq = 50
             for i in tqdm(range(iters)):
                 log = (i % config_dict["run_args"]["display_freq"] == 0) or (i == iters - 1)
                 mask_images, warp_images, numbers, outputs, loss_values = run_manager.run_epoch(

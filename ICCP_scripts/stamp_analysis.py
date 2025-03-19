@@ -16,23 +16,35 @@ from skimage.draw import disk
 from regions.core import PixCoord
 from regions.shapes.circle import CirclePixelRegion
 
-# run_id = "IC-42"
-# image_type = "depth" 
-# image = download_image(run_id, image_type)
+experiment_dict = load_dictionary(log_folder + '/stamp_runs_v3.json')
 
-experiment_dict = load_dictionary(log_folder + '/stamp_runs_v2.json')
+# # can delete this, just making absolutely sure 
+# # nothing important has been deleted 
+# from filmscope.config import log_folder, path_to_data, neptune_project, neptune_api_token
+# import neptune 
+# project = neptune.init_project(project=neptune_project,
+#                                api_token=neptune_api_token)
+# runs_table_df = project.fetch_runs_table().to_pandas()
+# ids = runs_table_df["sys/id"].values
+# for key in experiment_dict.keys():
+#     assert key in ids 
 
-
-save_folder = "/media/Friday/Temporary/Clare/ICCP_result_storage/stamp_results"
+save_folder = "/media/Friday/Temporary/Clare/ICCP_result_storage/stamp_results_v3"
+if not os.path.exists(save_folder): 
+    os.mkdir(save_folder)
 #np.save(save_folder + '/low_res_depth.npy', depth_patch)
 for key, item in tqdm(experiment_dict.items()):
     save_name = save_folder + f'/{key}_depth.npy'
-    if os.path.exists(save_name):
-        continue
-    image = download_image(key, "depth")
-    np.save(save_name, image)
+    if not os.path.exists(save_name):
+        image = download_image(key, "depth")
+        np.save(save_name, image)
 
-base_key = "IC-284"
+    save_name = save_folder + f'/{key}_summed.npy'
+    if not os.path.exists(save_name):
+        image = download_image(key, "summed_warp")
+        np.save(save_name, image)
+
+base_key = "IC-610"
 
 
 # define a bunch of functions
@@ -255,7 +267,7 @@ def process_line(heights, lat_vals, show=True, clean=True):
     
     return peaks, troughs
 
-def get_peaks_troughs(key, show=True, show_lines=0, clean=True):
+def get_peaks_troughs(key, line_starts, line_ends, show=True, show_lines=0, clean=True):
     height = np.load(save_folder + f'/{key}_depth.npy')
     height = remove_global_tilt(height)
     height = height - np.min(height)
@@ -397,7 +409,6 @@ line_dir_sec = 0
 
 
 # testing out some processing approaches 
-base_key = "IC-284"
 ref_image = get_reference_image(base_key) 
 
 def compute_indices():
@@ -425,7 +436,7 @@ def compute_indices():
     for s, e in zip(line_starts, line_ends):
         plt.plot([s[1], e[1]], [s[0], e[0]], color='red')
 
-    peaks, troughs, peak_indices, trough_indices = get_peaks_troughs(base_key)
+    peaks, troughs, peak_indices, trough_indices = get_peaks_troughs(base_key, line_starts, line_ends)
 
     # for each peak, find the six closest peaks 
     # and the midpoints will be troughs 
@@ -448,7 +459,15 @@ trough_indices, peak_indices = compute_indices()
 
 # load and look at other maps/results 
 key = base_key#"IC-407" 
+key = "IC-613"
 height = load_height_map(key)
+
+
+# height = np.load("temporary_height_map.npy")
+# height = remove_global_tilt(height) 
+# height = height - np.min(height) 
+
+
 circle_radius_p = 1
 circle_radius_t = 1
 peak_values = np.asarray([average_circle_value(height, loc, circle_radius_p) for loc in peak_indices])
@@ -460,11 +479,11 @@ display_height_map(height, trough_indices=trough_indices, peak_indices=peak_indi
 
 
 for key, item in experiment_dict.items():
-    if item["noise"][0] != 0:
+    if item["noise"][0] != 20:
         continue
 
-    if len(item["cameras"]) != 48:
-        continue
+    # if len(item["cameras"]) != 48:
+    #     continue
 
     height = load_height_map(key)
     circle_radius_p = 1
@@ -483,3 +502,5 @@ cam_nums = []
 for key, item in experiment_dict.items():
     cam_nums.append(len(item["cameras"]))
     noises.append(item["noise"][0])
+plt.figure()
+plt.scatter(cam_nums, noises)

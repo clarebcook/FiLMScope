@@ -15,7 +15,7 @@ use_neptune = True
 
 os.environ["CUDA_VISIBLE_DEVICES"] = gpu_number
 
-experiment_dict_filename = log_folder + f'/stamp_runs_v2.json'
+experiment_dict_filename = log_folder + f'/stamp_runs_v3.json'
 if os.path.exists(experiment_dict_filename):
     experiment_dict = load_dictionary(experiment_dict_filename) 
 else:
@@ -24,11 +24,12 @@ else:
 
 print(experiment_dict_filename) 
 
-all_num_cameras = [48, 40, 30, 20, 10, 5, 4, 3]
-all_repeats = [1, 1, 1, 1, 3, 3, 3, 3]
-all_noise_stds = [0, 5, 10, 18, 25, 30, 40]
+all_num_cameras = [30, 48, 40, 20, 10, 5, 4, 3]
+all_repeats = [1, 1, 1, 1, 2, 3, 3, 3]
+all_noise_stds = [0, 10, 20]
 
 
+reference_camera = 22 # just hardcoding whatever
 
 for num_cameras, repeats in zip(all_num_cameras, all_repeats):
     iterations = 240 # min(int(500 * 48 / num_cameras), 1000)
@@ -46,8 +47,8 @@ for num_cameras, repeats in zip(all_num_cameras, all_repeats):
     for cur_noise_stds, custom_image_numbers in zip(partials, partial_cameras):#repeat in range(repeats): 
         if custom_image_numbers is None:
             custom_image_numbers = torch.randperm(48)[:num_cameras]
-            if 20 not in custom_image_numbers:
-                custom_image_numbers[0] = 20
+            if reference_camera not in custom_image_numbers:
+                custom_image_numbers[0] = reference_camera
             custom_image_numbers = custom_image_numbers.tolist()
         for noise_std in cur_noise_stds: 
             noise = [noise_std, 0]
@@ -55,7 +56,8 @@ for num_cameras, repeats in zip(all_num_cameras, all_repeats):
 
 
             config_dict = generate_config_dict(sample_name=sample_name, gpu_number=gpu_number, downsample=1,
-                                            camera_set="all", use_neptune=use_neptune,
+                                            camera_set="custom", use_neptune=use_neptune,
+                                            custom_image_numbers=custom_image_numbers,
                                             #load_crop_entry=False, 
                                             # frame_number=frame_number,
                                             run_args={"iters": iterations, "batch_size": 12, "num_depths": 64,

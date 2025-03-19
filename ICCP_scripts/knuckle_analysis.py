@@ -14,16 +14,30 @@ import os
 
 experiment_dict = load_dictionary(log_folder + '/knuckle_frame_438.json')
 
+# # can delete this, just making absolutely sure 
+# # nothing important has been deleted 
+# from filmscope.config import log_folder, path_to_data, neptune_project, neptune_api_token
+# import neptune 
+# project = neptune.init_project(project=neptune_project,
+#                                api_token=neptune_api_token)
+# runs_table_df = project.fetch_runs_table().to_pandas()
+# ids = runs_table_df["sys/id"].values
+# for key in experiment_dict.keys():
+#     assert key in ids 
 
 
 save_folder = "/media/Friday/Temporary/Clare/ICCP_result_storage/knuckle_frame_438_results"
 
 for key, item in tqdm(experiment_dict.items()):
     save_name = save_folder + f'/{key}_depth.npy'
-    if os.path.exists(save_name):
-        continue
-    image = download_image(key, "depth")
-    np.save(save_name, image)
+    if not os.path.exists(save_name):
+        image = download_image(key, "depth")
+        np.save(save_name, image)
+
+    save_name = save_folder + f'/{key}_summed.npy'
+    if not os.path.exists(save_name):
+        image = download_image(key, "summed_warp")
+        np.save(save_name, image)
 
 
 # diff = image - depth_patch 
@@ -47,7 +61,7 @@ for i, nl in enumerate(noise_levels):
             save_name = save_folder + f'/{key}_depth.npy'
             image = np.load(save_name)
             #ax = axes[i,j] 
-            ax.imshow(image, cmap='turbo') 
+            ax.imshow(image[50:-50, 50:-100], cmap='turbo') 
             #ax.set_xticks([]) 
             #ax.set_yticks([]) 
 
@@ -93,3 +107,27 @@ for i, nl in enumerate(noise_levels):
         #break 
 
     #break 
+
+
+# for key, item in experiment_dict.items():
+#     if len(item["cameras"]) < 10:
+#         print("here")
+#         image, run = download_image(key, "depth", return_run=True)
+#         loss = run["reconstruction/loss/unsup"].fetch_values() 
+#         loss = loss["value"].values 
+#         plt.figure()
+#         plt.plot(loss) 
+#         plt.show()
+
+#         #break 
+
+
+for key, item in experiment_dict.items():
+    if len(item["cameras"]) == 10 and item["noise"][0] == 5: 
+        save_name = save_folder + f'/{key}_depth.npy'
+        image = np.load(save_name) 
+
+        plt.figure()
+        plt.imshow(image, cmap='turbo') 
+        plt.title(len(item["cameras"]))
+        plt.show()

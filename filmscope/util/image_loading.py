@@ -113,7 +113,9 @@ def load_image_set(filename, image_numbers=None, blank_filename=None,
 
         images[number] = np.asarray(images[number])
 
-        if debayer and dataset.sensor_chroma.data == "bayer_gbrg":
+        # a small number of datasets were changed and resaved without "sensor_chroma"
+        # so we check for that here, and assume the dataset is monochrome if it is not saved
+        if debayer and "sensor_chroma" in dataset and dataset.sensor_chroma.data == "bayer_gbrg":
             images[number] = cv2.cvtColor(images[number], cv2.COLOR_BAYER_RG2RGB)
 
         if ensure_grayscale and len(images[number].shape) > 2:

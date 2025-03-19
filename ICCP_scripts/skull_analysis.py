@@ -12,19 +12,35 @@ import os
 # image_type = "depth" 
 # image = download_image(run_id, image_type)
 
-experiment_dict = load_dictionary(log_folder + '/skull_frame_700.json')
+experiment_dict = load_dictionary(log_folder + '/skull_frame_700_v2.json')
 
 
+# # can delete this, just making absolutely sure 
+# # nothing important has been deleted 
+# from filmscope.config import log_folder, path_to_data, neptune_project, neptune_api_token
+# import neptune 
+# project = neptune.init_project(project=neptune_project,
+#                                api_token=neptune_api_token)
+# runs_table_df = project.fetch_runs_table().to_pandas()
+# ids = runs_table_df["sys/id"].values
+# for key in experiment_dict.keys():
+#     assert key in ids 
 
-save_folder = "/media/Friday/Temporary/Clare/ICCP_result_storage/skull_700_results"
+
+save_folder = "/media/Friday/Temporary/Clare/ICCP_result_storage/skull_700_results_v2"
+if not os.path.exists(save_folder):
+    os.mkdir(save_folder)
 #np.save(save_folder + '/low_res_depth.npy', depth_patch)
 for key, item in tqdm(experiment_dict.items()):
     save_name = save_folder + f'/{key}_depth.npy'
-    if os.path.exists(save_name):
-        continue
-    image = download_image(key, "depth")
-    np.save(save_name, image)
+    if not os.path.exists(save_name):
+        image = download_image(key, "depth")
+        np.save(save_name, image)
 
+    save_name = save_folder + f'/{key}_summed.npy'
+    if not os.path.exists(save_name):
+        image = download_image(key, "summed_warp")
+        np.save(save_name, image)
 
 # diff = image - depth_patch 
 # plt.figure()
@@ -33,7 +49,7 @@ for key, item in tqdm(experiment_dict.items()):
 
 
 fig, axes = plt.subplots(3, 5) 
-noise_levels = [1, 5, 10]
+noise_levels = [1, 10, 18]
 num_cameras = [48, 30, 20, 10, 3]
 for i, nl in enumerate(noise_levels):
     for j, nc in enumerate(num_cameras):

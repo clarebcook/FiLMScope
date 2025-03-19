@@ -9,24 +9,19 @@ from tqdm import tqdm
 import os 
 import matplotlib
 
-# run_id = "IC-42"
-# image_type = "depth" 
-# image = download_image(run_id, image_type)
 
 experiment_dict = load_dictionary(log_folder + '/finger_from_low_res.json')
 
-
-# for key, item in experiment_dict.items():
-#     if len(item["cameras"]) != 48 or item["noise"][0] != 10:
-#         continue
-
-#     image, run = download_image(key, "depth", return_run=True)
-#     plt.figure()
-#     plt.imshow(image, cmap='turbo')
-#     plt.title(f"{len(item['cameras'])} cameras, noise {item['noise'][0]}")
-#     plt.show() 
-
-#     break 
+# # can delete this, just making absolutely sure 
+# # nothing important has been deleted 
+# from filmscope.config import log_folder, path_to_data, neptune_project, neptune_api_token
+# import neptune 
+# project = neptune.init_project(project=neptune_project,
+#                                api_token=neptune_api_token)
+# runs_table_df = project.fetch_runs_table().to_pandas()
+# ids = runs_table_df["sys/id"].values
+# for key in experiment_dict.keys():
+#     assert key in ids 
 
 
 # and let's load in the low res map 
@@ -50,21 +45,29 @@ save_folder = "/media/Friday/Temporary/Clare/ICCP_result_storage/finger_from_low
 #np.save(save_folder + '/low_res_depth.npy', depth_patch)
 for key, item in tqdm(experiment_dict.items()):
     save_name = save_folder + f'/{key}_depth.npy'
-    if os.path.exists(save_name):
-        continue
-    image = download_image(key, "depth")
-    np.save(save_name, image)
+    if not os.path.exists(save_name):
+        image = download_image(key, "depth")
+        np.save(save_name, image)
+
+    save_name = save_folder + f'/{key}_summed.npy'
+    if not os.path.exists(save_name):
+        image = download_image(key, "summed_warp")
+        np.save(save_name, image)
 
 
-# diff = image - depth_patch 
-# plt.figure()
-# plt.imshow(diff, cmap='turbo', clim=(-0.3, 0.3)) 
-# plt.colorbar() 
+noises = []
+nums = []
+for key, item in experiment_dict.items():
+    noises.append(item["noise"][0])
+    nums.append(len(item["cameras"])) 
+plt.figure()
+plt.scatter(nums, noises)
+plt.show()
 
 
-fig, axes = plt.subplots(3, 5) 
-noise_levels = [1, 5, 10]
-num_cameras = [48, 40, 30, 20, 10]
+fig, axes = plt.subplots(4, 5) 
+noise_levels = [1, 5, 10, 15]
+num_cameras = [48, 40, 5, 4, 3]
 for i, nl in enumerate(noise_levels):
     for j, nc in enumerate(num_cameras):
         ax = axes[i,j] 
@@ -141,3 +144,16 @@ for i, nl in enumerate(noise_levels):
             count += 1
         avg_score  = avg_score / count 
         plt.scatter([nl], [avg_score], color=color)
+
+
+
+noises = []
+nums = []
+for key, item in experiment_dict.items():
+    noise = item["noise"][0] 
+    num = len(item["cameras"])
+    noises.append(noise) 
+    nums.append(num) 
+
+plt.figure()
+plt.scatter(nums, noises)
