@@ -2,13 +2,14 @@ from utility_functions import download_image, remove_global_tilt, get_reference_
 import numpy as np 
 from matplotlib import pyplot as plt 
 from filmscope.config import log_folder, path_to_data
-from filmscope.util import load_dictionary
+from filmscope.util import load_dictionary, save_dictionary
 import torch 
 import torch.nn.functional as F
 from tqdm import tqdm 
 import os 
 import math 
 import scipy
+
 
 
 import numpy as np
@@ -45,6 +46,44 @@ for key, item in tqdm(experiment_dict.items()):
         np.save(save_name, image)
 
 base_key = "IC-610"
+
+noises = []
+nums = []
+for key, item in experiment_dict.items():
+    noises.append(item["noise"][0])
+    nums.append(len(item["cameras"])) 
+plt.figure()
+plt.scatter(nums, noises)
+plt.show()
+
+
+# another way 
+summarized = {}
+for key, item in experiment_dict.items():
+    noise = item["noise"][0] 
+    num = len(item["cameras"])
+    if num not in summarized: 
+        summarized[num] = {noise: 1}
+    elif noise not in summarized[num]: 
+        summarized[num][noise] = 1 
+    else: 
+        summarized[num][noise] = summarized[num][noise] + 1
+
+
+# another way? 
+unique_noise = np.sort(np.unique(noises))
+unique_nums = np.sort(np.unique(nums)) 
+organized = np.zeros((len(unique_nums), len(unique_noise)), dtype=np.int16) 
+for i, num in enumerate(unique_nums): 
+    for j, noise in enumerate(unique_noise): 
+        if noise in summarized[num]: 
+            organized[i, j] = summarized[num][noise]
+# Create a figure and axis
+fig, ax = plt.subplots()
+# Hide axes
+ax.axis('off')      
+table = ax.table(organized, colLabels=unique_noise, rowLabels=unique_nums)
+fig.subplots_adjust(bottom=0.0, top=0.9, )
 
 
 # define a bunch of functions
@@ -453,20 +492,18 @@ def compute_indices():
     return peak_indices, trough_indices
 
 trough_indices, peak_indices = compute_indices()
-
-
+trough_save_name = "analysis_results/stamp_trough_indices.npy"
+peak_save_name = "analysis_results/stamp_peak_indices.npy"
+#np.save(trough_save_name, trough_indices)
+#np.save(peak_save_name, peak_indices)
+trough_indices = np.load(trough_save_name)
+peak_indices = np.load(peak_save_name)
 
 
 # load and look at other maps/results 
 key = base_key#"IC-407" 
-key = "IC-613"
+#key = "IC-610"
 height = load_height_map(key)
-
-
-# height = np.load("temporary_height_map.npy")
-# height = remove_global_tilt(height) 
-# height = height - np.min(height) 
-
 
 circle_radius_p = 1
 circle_radius_t = 1
@@ -476,31 +513,128 @@ hist_peaks_troughs(trough_values, peak_values)
 display_height_map(height, trough_indices=trough_indices, peak_indices=peak_indices)
 
 
-
-
+# use to display specific maps 
+included = []
 for key, item in experiment_dict.items():
-    if item["noise"][0] != 20:
+    if item["noise"][0] != 0 or len(item["cameras"]) != 4:
         continue
 
-    # if len(item["cameras"]) != 48:
+    # if len(item["cameras"]) in included:
     #     continue
+
+    # included.append(len(item["cameras"]))
 
     height = load_height_map(key)
     circle_radius_p = 1
     circle_radius_t = 1
     peak_values = np.asarray([average_circle_value(height, loc, circle_radius_p) for loc in peak_indices])
     trough_values = np.asarray([average_circle_value(height, loc, circle_radius_t) for loc in trough_indices])
-    hist_peaks_troughs(trough_values, peak_values)
+    #hist_peaks_troughs(trough_values, peak_values)
     display_height_map(height, trough_indices=trough_indices, peak_indices=peak_indices)
-    plt.title(f"noise: {item['noise'][0]} \n {len(item['cameras'])} cameras")
+    plt.title(f"noise: {item['noise'][0]} \n {len(item['cameras'])} cameras \n {item['cameras']} ")
     plt.show()
 
 
+base_height = load_height_map(base_key)
+save_name = "analysis_results/stamp_values.json"
+analysis_results = load_dictionary(save_name)
+for key, item in tqdm(experiment_dict.items()):
+    if key in analysis_results:
+        experiment_dict[key] = analysis_results[key]
+        continue
+    height = load_height_map(key) 
+    # ssim_score = ssim(base_image, image) 
+    mse = np.mean(np.sqrt((base_height - height)**2)) 
+    item["mse"] = mse 
 
-noises = []
-cam_nums = []
+    peak_values = np.asarray([average_circle_value(height, loc, circle_radius_p) for loc in peak_indices])
+    trough_values = np.asarray([average_circle_value(height, loc, circle_radius_t) for loc in trough_indices])
+
+    
+    mu_t, std_t = scipy.stats.norm.fit(trough_values)
+    mu_p, std_p = scipy.stats.norm.fit(peak_values)
+    diff = mu_p - mu_t 
+
+    item["peak_std"] = std_p 
+    item["trough_std"] = std_t 
+    item["diff"] = diff
+
+save_dictionary(experiment_dict, save_name)
+
+
+noises = np.asarray([0, 10, 20, 30])
+colors = ["black", "blue", "green", "gray"]
+used_colors = []
 for key, item in experiment_dict.items():
-    cam_nums.append(len(item["cameras"]))
-    noises.append(item["noise"][0])
+    if key == base_key:
+        continue
+    noise = item["noise"][0] 
+    idx = np.where(noises==noise)[0][0]
+    color = colors[idx] 
+
+    score = -item["diff"] 
+    num = len(item["cameras"])
+
+    # hacky way to get the legend? 
+    if color not in used_colors:
+        label = noise 
+    else: 
+        label = None 
+    used_colors.append(color) 
+    plt.scatter(num, score*1e3, color=color, label=label)
+plt.legend(title="Noise std dev")
+plt.xlabel("# Cameras") 
+plt.ylabel("separation")
+plt.title("Peak/Trough separation for single trials")
+
+
 plt.figure()
-plt.scatter(cam_nums, noises)
+for noise, color in zip(noises, colors): 
+    print(noise, color)
+    first = True 
+    for key, item in experiment_dict.items():
+        if key == base_key:
+            continue
+        if item["noise"][0] != noise:
+            continue 
+        num_cameras = len(item["cameras"])
+        count = 0 
+        value = 0
+        for key2, item2 in experiment_dict.items():
+            if len(item2["cameras"]) == num_cameras and item2["noise"][0] == noise: 
+                count += 1
+                value += -item2["diff"]
+
+        value = value / count 
+        if first:
+            label = noise 
+        else: 
+            label = None
+        plt.scatter([num_cameras], [value*1e3], color=color, label=label)
+        first = False 
+plt.legend(title="Noise std dev")
+plt.xlabel("# Cameras") 
+plt.ylabel("separation (um)")
+plt.title("Peak/Trough separation for averaged values")
+
+
+
+numbers = [22, 13, 16, 42]
+fig, axes = plt.subplots(6, 8)
+for i, j in np.ndindex(axes.shape):
+    ax = axes[i, j] 
+    ax.set_xticks([])
+    ax.set_yticks([])
+    number = (5 - i) + 6 * j
+    
+    if number in numbers:
+        ax.set_facecolor("red") 
+    else:
+        ax.set_facecolor("black") 
+
+
+
+
+
+
+

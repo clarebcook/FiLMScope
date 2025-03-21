@@ -11,8 +11,8 @@ from utility_functions import count_needed_runs
 # the gpu number, and whether or not to log with neptune.ai
 sample_name = "skull_tool_4x4_08_12"
 frame_number = 700
-gpu_number = "2"
-use_neptune = False
+gpu_number = "4"
+use_neptune = True
 
 os.environ["CUDA_VISIBLE_DEVICES"] = gpu_number
 
@@ -27,8 +27,8 @@ print(experiment_dict_filename)
 
 all_num_cameras = [48, 40, 30, 20, 10, 5, 4, 3]
 all_repeats = [1, 1, 1, 1, 2, 3, 3, 3]
-all_noise_stds = [1, 5, 10, 18]
-all_noise_stds = [15, 18]
+all_noise_stds = [1, 5, 10]
+# all_noise_stds = [15, 18]
 
 
 for num_cameras, repeats in zip(all_num_cameras, all_repeats):

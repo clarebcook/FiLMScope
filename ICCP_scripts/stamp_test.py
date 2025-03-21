@@ -3,6 +3,7 @@ from filmscope.util import get_timestamp, load_dictionary, save_dictionary
 from filmscope.config import log_folder
 from tqdm import tqdm
 import os
+import numpy as np 
 import torch
 from matplotlib import pyplot as plt 
 from utility_functions import count_needed_runs
@@ -25,7 +26,7 @@ else:
 print(experiment_dict_filename) 
 
 all_num_cameras = [30, 48, 40, 20, 10, 5, 4, 3]
-all_repeats = [1, 1, 1, 1, 2, 3, 3, 3]
+all_repeats = [1, 1, 1, 2, 4, 7, 7, 7]
 all_noise_stds = [0, 10, 20]
 
 
@@ -127,3 +128,5 @@ for num_cameras, repeats in zip(all_num_cameras, all_repeats):
             save_dictionary(experiment_dict, experiment_dict_filename)
 
             run_manager.end()
+
+
