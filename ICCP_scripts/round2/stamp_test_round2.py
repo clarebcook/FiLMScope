@@ -9,26 +9,27 @@ from utility_functions import count_needed_runs
 from select_subsets import subsets 
 import numpy as np
 
+
 # select the name of a sample previously saved using "save_new_sample.ipynb",
 # the gpu number, and whether or not to log with neptune.ai
-sample_name = "skull_tool_4x4_08_12"
-frame_number = 700
-gpu_number = "4"
+sample_name = "stamp_02_08"
+gpu_number = "0"
 use_neptune = False
 
 os.environ["CUDA_VISIBLE_DEVICES"] = gpu_number
 
-experiment_dict_filename = log_folder + f'/skull_frame_{frame_number}_round2.json'
+experiment_dict_filename = log_folder + f'/stamp_runs_round2.json'
 if os.path.exists(experiment_dict_filename):
     experiment_dict = load_dictionary(experiment_dict_filename) 
 else:
     experiment_dict = {}
 
-experiment_log_folder = log_folder + f'/skull_frame_{frame_number}_results'
+
+experiment_log_folder = log_folder + f'/stamp_results'
 if not os.path.exists(experiment_log_folder):
     os.mkdir(experiment_log_folder)
 
-noise_stds = [0, 1, 5, 10, 15]
+noise_stds = [0, 10, 20, 30]
 
 
 def check_if_complete(experiment_dict, image_numbers, noise):
@@ -46,11 +47,16 @@ def check_if_complete(experiment_dict, image_numbers, noise):
     return complete 
 
 
+log_locs = [60, 100, 140, 240]
+
+
 for noise_std in noise_stds:
     for custom_image_numbers in subsets: 
         print(custom_image_numbers) 
         num_cameras = len(custom_image_numbers) 
-        iterations = min(int(300 * 48 / num_cameras), 1000)
+        iterations = 250
+
+
 
         if check_if_complete(experiment_dict, custom_image_numbers, noise_std):
             print("continuing!!!!", noise_std, len(custom_image_numbers))
@@ -65,11 +71,11 @@ for noise_std in noise_stds:
         noise = [noise_std, 0]
         config_dict = generate_config_dict(sample_name=sample_name, gpu_number=gpu_number, downsample=1,
                                             camera_set="custom", use_neptune=use_neptune,
-                                            frame_number=frame_number,
+                                            frame_number=-1,
                                             run_args={"iters": iterations, "batch_size": 12, "num_depths": 64,
-                                                      "display_freq": 100},
+                                                      "display_freq": 20},
                                             custom_image_numbers=custom_image_numbers, 
-                                            #custom_crop_info={'crop_size': (1, 1), "ref_crop_center": (0.5, 0.5)}
+                                            custom_crop_info={'crop_size': (0.15, 0.2)} #, "ref_crop_center": (0.5, 0.5)}
                                             )
         run_manager = RunManager(config_dict, noise=noise)
 
@@ -101,7 +107,21 @@ for noise_std in noise_stds:
                 plt.title("loss")
                 plt.show()
 
+                plt.figure()
+                plt.imshow(b[100:300, 100:300], cmap='magma') 
+                plt.show()
+
                 plt.close()
+            
+            if i in log_locs:
+                # I'm only saving if it completes   
+                warp = outputs["warped_imgs"].detach().cpu().squeeze().numpy()
+                warp = np.mean(warp, axis=0) 
+                depth = outputs["depth"].detach().cpu().squeeze().numpy()
+                depth_savename = experiment_log_folder + f"/run_{run_id}_iter_{i}_depth.npy"
+                np.save(depth_savename, depth) 
+                warp_savename = experiment_log_folder + f"/run_{run_id}_iter_{i}_warp.npy"
+                np.save(warp_savename, warp)
 
 
         # I'm only saving if it completes   
@@ -127,8 +147,5 @@ for noise_std in noise_stds:
 
         experiment_dict[run_id] = dict_entry
         save_dictionary(experiment_dict, experiment_dict_filename)
-
-
-
 
 

@@ -9,27 +9,26 @@ from utility_functions import count_needed_runs
 from select_subsets import subsets 
 import numpy as np
 
-# select the name of a sample previously saved using "save_new_sample.ipynb",
-# the gpu number, and whether or not to log with neptune.ai
-sample_name = "skull_tool_4x4_08_12"
-frame_number = 700
-gpu_number = "4"
-use_neptune = False
+# select sample name and gpu number
+sample_name = "knuckle_video"
+gpu_number = "1"
 
 os.environ["CUDA_VISIBLE_DEVICES"] = gpu_number
 
-experiment_dict_filename = log_folder + f'/skull_frame_{frame_number}_round2.json'
+frame = 438 
+experiment_dict_filename = log_folder + f'/knuckle_frame_{frame}.json'
 if os.path.exists(experiment_dict_filename):
     experiment_dict = load_dictionary(experiment_dict_filename) 
 else:
     experiment_dict = {}
 
-experiment_log_folder = log_folder + f'/skull_frame_{frame_number}_results'
+experiment_log_folder = log_folder + f'/knuckle_frame_{frame}_results'
 if not os.path.exists(experiment_log_folder):
     os.mkdir(experiment_log_folder)
 
-noise_stds = [0, 1, 5, 10, 15]
+use_neptune = False 
 
+noise_stds = [0, 5, 10]
 
 def check_if_complete(experiment_dict, image_numbers, noise):
     complete = False
@@ -50,7 +49,7 @@ for noise_std in noise_stds:
     for custom_image_numbers in subsets: 
         print(custom_image_numbers) 
         num_cameras = len(custom_image_numbers) 
-        iterations = min(int(300 * 48 / num_cameras), 1000)
+        iterations = min(int(400 * 48 / num_cameras), 1000)
 
         if check_if_complete(experiment_dict, custom_image_numbers, noise_std):
             print("continuing!!!!", noise_std, len(custom_image_numbers))
@@ -65,12 +64,14 @@ for noise_std in noise_stds:
         noise = [noise_std, 0]
         config_dict = generate_config_dict(sample_name=sample_name, gpu_number=gpu_number, downsample=1,
                                             camera_set="custom", use_neptune=use_neptune,
-                                            frame_number=frame_number,
-                                            run_args={"iters": iterations, "batch_size": 12, "num_depths": 64,
+                                            frame_number=frame,
+                                            run_args={"iters": iterations, "batch_size": 12, "num_depths": 32,
                                                       "display_freq": 100},
                                             custom_image_numbers=custom_image_numbers, 
                                             #custom_crop_info={'crop_size': (1, 1), "ref_crop_center": (0.5, 0.5)}
                                             )
+        
+        config_dict["sample_info"]["depth_range"] = (-7, 6)
         run_manager = RunManager(config_dict, noise=noise)
 
         losses = [] 
@@ -93,6 +94,7 @@ for noise_std in noise_stds:
                 #fig.suptitle(f"epoch {i}, {num_cameras} cameras, noise {noise}")
                 plt.tight_layout()
                 plt.show()
+
 
                 plt.figure()
                 plt.plot(losses)
@@ -127,7 +129,6 @@ for noise_std in noise_stds:
 
         experiment_dict[run_id] = dict_entry
         save_dictionary(experiment_dict, experiment_dict_filename)
-
 
 
 
