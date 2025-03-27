@@ -6,6 +6,14 @@ invert = True
 
 np.random.seed(0)
 subsets = [
+    [20, 22, 32, 34], 
+    [20, 18, 32, 30], 
+    [20, 26, 19, 25], 
+    [13, 14, 15, 19, 20, 21, 25, 26, 27], 
+    [19, 20, 21, 25, 26, 27, 31, 32, 33],
+    [10, 34, 30, 20], 
+
+
     [14, 15, 20, 21], 
     [20, 22, 32, 24], 
     [20, 8, 10, 22], 
@@ -63,17 +71,17 @@ for subset in subsets:
     assert 20 in subset
 
 
-# loop to add in random iterations
-subsets.append(np.arange(48).tolist())
-num = [40, 30, 20, 10]
-count = [2, 2, 3, 4]
-for n, c in zip(num, count): 
-    for i in range(c):
-        np.random.seed(i)
-        array = np.random.choice(range(48), size=n, replace=False)
-        if 20 not in array:
-            array[0] = 20
-        subsets.append(array.tolist())
+# # loop to add in random iterations
+# subsets.append(np.arange(48).tolist())
+# num = [40, 30, 20, 10]
+# count = [2, 2, 3, 4]
+# for n, c in zip(num, count): 
+#     for i in range(c):
+#         np.random.seed(i)
+#         array = np.random.choice(range(48), size=n, replace=False)
+#         if 20 not in array:
+#             array[0] = 20
+#         subsets.append(array.tolist())
 
 
 
