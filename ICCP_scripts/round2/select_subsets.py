@@ -50,17 +50,17 @@ for subset in subsets:
     assert 20 in subset
 
 
-# # loop to add in random iterations
-# subsets.append(np.arange(48).tolist())
-# num = [40, 30, 20]
-# count = [2, 2, 3]
-# for n, c in zip(num, count): 
-#     for i in range(c):
-#         np.random.seed(i)
-#         array = np.random.choice(range(48), size=n, replace=False)
-#         if 20 not in array:
-#             array[0] = 20
-#         subsets.append(array.tolist())
+# loop to add in random iterations
+subsets.append(np.arange(48).tolist())
+num = [15, 20, 25, 30, 35, 40, 45]
+count = [5, 5, 5, 5, 5, 5, 5]
+for n, c in zip(num, count): 
+    for i in range(c):
+        np.random.seed(i + 10)
+        array = np.random.choice(range(48), size=n, replace=False)
+        if 20 not in array:
+            array[0] = 20
+        subsets.append(array.tolist())
 
 
 

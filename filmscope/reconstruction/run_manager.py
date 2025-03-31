@@ -120,6 +120,13 @@ class RunManager:
                 volume.div_(num_views).pow_(2)
             )
 
+
+
+
+
+            # TODO: get rid of this!!!!
+            self.volume_variance = volume
+
     def setup_logger(self): 
         self.logger = NeptuneLogManager(
             dataset=self.dataset,

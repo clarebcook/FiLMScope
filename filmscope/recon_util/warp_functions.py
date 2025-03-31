@@ -59,7 +59,7 @@ def get_ss_volume_from_dataset(dataset, batch_size, depth_values, get_squared):
     for sample in ImageLoader:
         sample_cuda = tocuda(sample)
         images = sample_cuda["imgs"]
-        warped_ss_maps = sample_cuda["warped_shift_slope_maps"] - torch.asarray(dataset.ref_camera_shift_slopes).cuda()
+        warped_ss_maps = sample_cuda["warped_shift_slope_maps"] #- torch.asarray(dataset.ref_camera_shift_slopes).cuda()
         iic_maps = sample_cuda["inv_inter_camera_maps"]
 
         images = torch.unbind(images, 0)

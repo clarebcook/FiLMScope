@@ -64,26 +64,66 @@ subsets = [
 ]
 
 
+
+
+
+bad_nums = [35, 45, 29, 28, 13, 12, 5, 0]
+for i, subset in enumerate(subsets):
+    # for bn in bad_nums:
+    #     if bn in subset:
+    #         print(f"changing {subset}, {bn}")
+    vals = [i for i in subset if i not in bad_nums]
+    subsets[i] = vals 
+
+
+values = [i for i in range(48) if i not in bad_nums]
+subsets.append(values) 
+
+
 if invert:
     subsets = subsets[::-1]
 
-for subset in subsets:
-    assert 20 in subset
+
+
+
+
+
+only_random = True 
+if only_random:
+    subsets = []
+
+
+
+
+
 
 
 # # loop to add in random iterations
-# subsets.append(np.arange(48).tolist())
-# num = [40, 30, 20, 10]
-# count = [2, 2, 3, 4]
-# for n, c in zip(num, count): 
-#     for i in range(c):
-#         np.random.seed(i)
-#         array = np.random.choice(range(48), size=n, replace=False)
-#         if 20 not in array:
-#             array[0] = 20
-#         subsets.append(array.tolist())
+values = np.asarray(values) 
+num = [2, 10, 15, 20, 25, 30, 35]#[30, 20, 10, 5]
+count = [5, 5, 5, 5, 5, 5, 5] #[3, 3, 4, 5]
+for n, c in zip(num, count): 
+    for i in range(c):
+        np.random.seed(i)
+        array = np.random.choice(len(values), size=n, replace=False)
+        nums = values[array]
+        if 20 not in nums:
+            nums[0] = 20
+        subsets.append(nums.tolist())
 
 
+
+
+
+
+
+
+#print("hello!") 
+
+for subset in subsets:
+    #if 20 not in subset:
+    #    print(subset)
+    assert 20 in subset
 
 # not an efficient way to do it but its fine 
 duplicated = []
