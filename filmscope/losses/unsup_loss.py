@@ -37,6 +37,13 @@ class UnSupLoss(nn.Module):
         masks = masks * individual_masks
         if global_mask is not None:
             masks = masks * global_mask
+
+
+        # TODO get rid of this 
+        # warp ref img to the reference plane for comparison
+        ref_img = inverse_warping(ref_img[None], depth_est, ref_camera_shift_slopes, 
+                                  torch.zeros_like(ref_camera_shift_slopes), ref_camera_shift_slopes, 
+                                    )
         
         ref_images = ref_img[None].repeat(images.shape[0], 1, 1, 1)
         batch_ssim = self.ssim(ref_images, warped_images, masks)

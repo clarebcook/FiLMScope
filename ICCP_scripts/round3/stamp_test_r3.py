@@ -1,45 +1,46 @@
+# just slightly modifying to test with 
+# camera 22 as ref again 
+# with a different set of subsets
+
+
+# these should be able to be compared with the stamp tests from round 1
+# which were also using 22 as the reference camera 
+
+# those are stored in 
+#"ICCP_result_storage/stamp_results_v3"
+# with information in "ICCP_result_storage/stamp_runs_v3.json"
+
 from filmscope.reconstruction import RunManager, generate_config_dict 
 from filmscope.util import get_timestamp, load_dictionary, save_dictionary
-from filmscope.config import log_folder
+from filmscope.config import log_folder, path_to_data
+from filmscope.recon_util import get_sample_information
 from tqdm import tqdm
 import os
+import numpy as np 
 import torch
 from matplotlib import pyplot as plt 
 from utility_functions import count_needed_runs
-from select_subsets import subsets 
-import numpy as np
+from select_subsets_r3 import subsets 
 
+#info = get_sample_information("stamp_02_08")
 
-# select the name of a sample previously saved using "save_new_sample.ipynb",
-# the gpu number, and whether or not to log with neptune.ai
-sample_name = "stamp_20250327"
+sample_name = "stamp_02_08"
 gpu_number = "0"
-use_neptune = False
 
 os.environ["CUDA_VISIBLE_DEVICES"] = gpu_number
 
-experiment_dict_filename = log_folder + f'/stamp_runs_round4.json'
+experiment_dict_filename = log_folder + f'/stamp_runs_round3.json'
 if os.path.exists(experiment_dict_filename):
     experiment_dict = load_dictionary(experiment_dict_filename) 
 else:
     experiment_dict = {}
 
 
-experiment_log_folder = log_folder + f'/stamp_results_r4'
+experiment_log_folder = log_folder + f'/stamp_results_r3'
 if not os.path.exists(experiment_log_folder):
     os.mkdir(experiment_log_folder)
 
-noise_stds = [0] #[0, 10, 20, 30]
-log_locs = [10000] #[60, 90, 120, 160]
-
-iterations = 200000 
-
-subsets = [np.arange(48).tolist()]
-
 def check_if_complete(experiment_dict, image_numbers, noise):
-    return False 
-
-
     complete = False
     for item in experiment_dict.values():
         cams = item["cameras"] 
@@ -51,14 +52,18 @@ def check_if_complete(experiment_dict, image_numbers, noise):
         if run_noise == noise:
             complete = True 
             break
-    return complete 
+    return complete
 
-
+log_locs = [60, 100, 140, 240]
+noise_stds = [0, 10, 20, 30]
+noise_stds = [0]
 
 for noise_std in noise_stds:
     for custom_image_numbers in subsets: 
         print(custom_image_numbers) 
         num_cameras = len(custom_image_numbers) 
+        iterations = 250
+
 
 
         if check_if_complete(experiment_dict, custom_image_numbers, noise_std):
@@ -73,16 +78,27 @@ for noise_std in noise_stds:
 
         noise = [noise_std, 0]
         config_dict = generate_config_dict(sample_name=sample_name, gpu_number=gpu_number, downsample=1,
-                                            camera_set="custom", use_neptune=use_neptune,
+                                            camera_set="custom", use_neptune=False,
                                             frame_number=-1,
-                                            run_args={"iters": iterations, "batch_size": 12, "num_depths": 32,
-                                                      "display_freq": 20, "lr": 0.0007},
-                                            loss_weights={"smooth": 0.2}, 
+                                            run_args={"iters": iterations, "batch_size": 12, "num_depths": 64,
+                                                      "display_freq": 20},
                                             custom_image_numbers=custom_image_numbers, 
-                                            custom_crop_info={"crop_size": (0.08, 0.08)}   # get rid of this!!!!!!!!
                                             #custom_crop_info={'crop_size': (0.15, 0.2)} #, "ref_crop_center": (0.5, 0.5)}
                                             )
-        #config_dict["sample_info"]["depth_range"] = [1.2, 2.4]
+        
+        # things have gotten a little weird, 
+        # so I'm manually copying over some information from previous tests
+        # so that I can more eaisly continue to compare 
+        # with old runs 
+        config_dict = generate_config_dict(gpu_number, sample_name=sample_name)
+        info = config_dict["sample_info"] 
+        info["height_est"] = 2.55 
+        info["ref_crop_center"] = (0.537109375, 0.46875)
+        info["crop_size"] = (0.15, 0.2)
+        info["calibration_filename"] = "/stamp_2024_02_08/calibration_information_old"
+
+        assert os.path.exists(path_to_data + info["calibration_filename"])
+
         run_manager = RunManager(config_dict, noise=noise)
 
         losses = [] 
