@@ -43,7 +43,8 @@ def generate_warp_volume(
 
 # depth values should be a torch tensor
 # TODO: make it possible to save to file instead of returning?
-def get_ss_volume_from_dataset(dataset, batch_size, depth_values, get_squared):
+def get_ss_volume_from_dataset(dataset, batch_size, depth_values, get_squared,
+                               rectify_perspective=True):
     ImageLoader = DataLoader(
         dataset,
         batch_size,
@@ -59,10 +60,13 @@ def get_ss_volume_from_dataset(dataset, batch_size, depth_values, get_squared):
     for sample in ImageLoader:
         sample_cuda = tocuda(sample)
         images = sample_cuda["imgs"]
-        # TODO TODO TODO
-        # change this back!!!! just temporarily testing without rectifying all the way to the 
-        # reference camera perspective 
-        warped_ss_maps = sample_cuda["warped_shift_slope_maps"] #- torch.asarray(dataset.ref_camera_shift_slopes).cuda()
+
+        # Shift slope maps are different based on whether the volume is rectified  
+        if rectify_perspective:
+            warped_ss_maps = sample_cuda["warped_shift_slope_maps"] 
+        else:
+            warped_ss_maps = sample_cuda["warped_shift_slope_maps"] - torch.asarray(dataset.ref_camera_shift_slopes).cuda()
+
         iic_maps = sample_cuda["inv_inter_camera_maps"]
 
         images = torch.unbind(images, 0)
@@ -104,6 +108,7 @@ def inverse_warping(
     view_inv_inter_camera,
     view_warped_shift_slope,
     base_grid=None,
+    rectify_perspective=True, 
 ):
     ref_depth_est = ref_depth_est.unsqueeze(-1)
     # if the mask is not None, mulitiply it with the ref_depth_est
@@ -111,9 +116,11 @@ def inverse_warping(
     if base_grid is None:
         base_grid = generate_base_grid(view_image.shape[2:]).cuda()
 
-    slope_shifts = (ref_shift_slope + view_warped_shift_slope * -1) * ref_depth_est
-    # TODO TODO TODO change this back!!!! 
-    slope_shifts = view_warped_shift_slope * -1 * ref_depth_est
+    if rectify_perspective:
+        slope_shifts = view_warped_shift_slope * -1 * ref_depth_est
+    else:
+        slope_shifts = (ref_shift_slope + view_warped_shift_slope * -1) * ref_depth_est
+
     full_grid = base_grid + slope_shifts + view_inv_inter_camera
 
     # and warp
@@ -136,14 +143,15 @@ def inverse_warping(
 # everything else is same as get_ss_volume_from_dataset
 # depth_map is [1, H, W] 
 def get_height_aware_vol_from_dataset(
-        dataset, batch_size, height_offsets, depth_map, get_squared
+        dataset, batch_size, height_offsets, depth_map, get_squared,
+        rectify_perspective=True,
 ):
     ImageLoader = DataLoader(
         dataset,
         batch_size=batch_size,
         shuffle=False,
         num_workers=4,
-        drop_last=False,
+        drop_last=False, 
     )
     depth_map = depth_map.unsqueeze(-1)
     volume = None
@@ -152,7 +160,13 @@ def get_height_aware_vol_from_dataset(
     for sample in ImageLoader:
         sample_cuda = tocuda(sample)
         images = sample_cuda["imgs"]
-        warped_ss_maps = sample_cuda["warped_shift_slope_maps"]
+        
+        # Shift slope maps are different based on whether the volume is rectified  
+        if rectify_perspective:
+            warped_ss_maps = sample_cuda["warped_shift_slope_maps"] 
+        else:
+            warped_ss_maps = sample_cuda["warped_shift_slope_maps"] - torch.asarray(dataset.ref_camera_shift_slopes).cuda()
+        
         iic_maps = sample_cuda["inv_inter_camera_maps"]
 
         images = torch.unbind(images, 0)

@@ -34,6 +34,7 @@ default_run_args = {
         "seg_clusters": 4,
         "drop_last": False,
         "unet_layers": 4,
+        "use_variance": True, 
 
         # for now the below two settings should be lists 
         # or None to use default values
