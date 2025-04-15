@@ -13,7 +13,7 @@ import numpy as np
 # select the name of a sample previously saved using "save_new_sample.ipynb",
 # the gpu number, and whether or not to log with neptune.ai
 sample_name = "stamp_20250327"
-gpu_number = "0"
+gpu_number = "1"
 use_neptune = False
 
 os.environ["CUDA_VISIBLE_DEVICES"] = gpu_number
@@ -57,15 +57,40 @@ def check_if_complete(experiment_dict, image_numbers, noise):
 #values = [i for i in range(48) if i not in bad_nums]
 #subsets = [values] 
 
+
+# pull the subsets from what's been done at other noise levels 
+def get_code(cameras):
+    binary_rep = [0] * 48 
+    for num in cameras:
+        binary_rep[num] = 1 
+    binary_string = ''.join(map(str, binary_rep))
+    decimal_number = int(binary_string, 2) 
+    return decimal_number
+subsets = []
+codes = []
+for key, item in experiment_dict.items():
+    sbt = item["cameras"] 
+    code = get_code(sbt) 
+    if code in codes:
+        continue 
+    subsets.append(sbt) 
+    codes.append(code)
+
+
+subsets = [[20]] 
+noise_stds = [0]
+
+
+# not_done = []
 for noise_std in noise_stds:
     for custom_image_numbers in subsets: 
         print(custom_image_numbers) 
         num_cameras = len(custom_image_numbers) 
 
 
-        if check_if_complete(experiment_dict, custom_image_numbers, noise_std):
-            print("continuing!!!!", noise_std, len(custom_image_numbers))
-            continue 
+        #if check_if_complete(experiment_dict, custom_image_numbers, noise_std):
+        #    print("continuing!!!!", noise_std, len(custom_image_numbers))
+        #    continue 
 
         # this isn't foolproof but I'm going to generate 
         # a random run id 
@@ -86,6 +111,9 @@ for noise_std in noise_stds:
         #config_dict["sample_info"]["depth_range"] = [0.7, 1.9]
 
         run_manager = RunManager(config_dict, noise=noise)
+
+        break 
+    break 
 
         losses = [] 
         display_freq = config_dict["run_args"]["display_freq"]

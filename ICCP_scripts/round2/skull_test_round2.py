@@ -13,7 +13,7 @@ import numpy as np
 # the gpu number, and whether or not to log with neptune.ai
 sample_name = "skull_tool_4x4_08_12"
 frame_number = 700
-gpu_number = "4"
+gpu_number = "0"
 use_neptune = False
 
 os.environ["CUDA_VISIBLE_DEVICES"] = gpu_number
@@ -29,6 +29,9 @@ if not os.path.exists(experiment_log_folder):
     os.mkdir(experiment_log_folder)
 
 noise_stds = [0, 1, 5, 10, 15]
+
+subsets = [[20]]
+noise_stds = [0]#, 5, 10, 15] 
 
 
 def check_if_complete(experiment_dict, image_numbers, noise):
@@ -52,9 +55,9 @@ for noise_std in noise_stds:
         num_cameras = len(custom_image_numbers) 
         iterations = min(int(300 * 48 / num_cameras), 1000)
 
-        if check_if_complete(experiment_dict, custom_image_numbers, noise_std):
-            print("continuing!!!!", noise_std, len(custom_image_numbers))
-            continue 
+        # if check_if_complete(experiment_dict, custom_image_numbers, noise_std):
+        #     print("continuing!!!!", noise_std, len(custom_image_numbers))
+        #     continue 
 
         # this isn't foolproof but I'm going to generate 
         # a random run id 
@@ -69,9 +72,12 @@ for noise_std in noise_stds:
                                             run_args={"iters": iterations, "batch_size": 12, "num_depths": 64,
                                                       "display_freq": 100},
                                             custom_image_numbers=custom_image_numbers, 
-                                            #custom_crop_info={'crop_size': (1, 1), "ref_crop_center": (0.5, 0.5)}
+                                            # custom_crop_info={'crop_size': (1, 1), "ref_crop_center": (0.5, 0.5)}
                                             )
         run_manager = RunManager(config_dict, noise=noise)
+
+        break 
+    break 
 
         losses = [] 
         display_freq = config_dict["run_args"]["display_freq"]

@@ -5,81 +5,74 @@ from tqdm import tqdm
 import os
 import torch
 from matplotlib import pyplot as plt 
-from utility_functions import count_needed_runs
+from utility_functions import check_if_complete
 from select_subsets import subsets 
 import numpy as np
 
-log_folder = "/media/Friday/Temporary/Clare/ICCP_result_storage/round_2_results"
 
-# select sample name and gpu number
-sample_name = "knuckle_video"
+# select the name of a sample previously saved using "save_new_sample.ipynb",
+# the gpu number, and whether or not to log with neptune.ai
+sample_name = "porcine"
 gpu_number = "1"
-
 os.environ["CUDA_VISIBLE_DEVICES"] = gpu_number
 
-frame = 438 
-experiment_dict_filename = log_folder + f'/knuckle_frame_{frame}.json'
+log_folder = "/media/Friday/Temporary/Clare/ICCP_result_storage"
+experiment_dict_filename = log_folder + f'/porcine_v2.json'
 if os.path.exists(experiment_dict_filename):
     experiment_dict = load_dictionary(experiment_dict_filename) 
 else:
     experiment_dict = {}
 
-experiment_log_folder = log_folder + f'/knuckle_frame_{frame}_results'
+experiment_log_folder = log_folder + f'/porcine_results'
 if not os.path.exists(experiment_log_folder):
     os.mkdir(experiment_log_folder)
 
-use_neptune = False 
+noise_stds = [0, 10, 20, 30]
 
-subsets = [[14, 20, 26, 16, 28]]
-noise_stds = [0, 5, 10] 
+# limited run to get a couple things for figures 
+subsets_focus = [
+    np.arange(48).tolist(), 
+    [13, 14, 15, 16, 19, 20, 21, 22, 25, 26, 27, 28, 31, 32, 33, 34], 
+    [6, 10, 20, 30, 34],  
+    [14, 20, 26, 16, 28],
+    [20, 21, 26, 27]
+]
+noise_stds = [5, 15] 
 
-def check_if_complete(experiment_dict, image_numbers, noise):
-    #return False 
-    complete = False
-    for item in experiment_dict.values():
-        cams = item["cameras"] 
-        if len(cams) != len(image_numbers):
-            continue 
-        if len(np.intersect1d(cams, image_numbers)) != len(cams):
-            continue 
-        run_noise = item["noise"][0] 
-        if run_noise == noise:
-            complete = True 
-            break
-    return complete 
+subsets = subsets_focus + subsets
 
+save_iters = [100, 225, 350]
+iterations = 352
 
 for noise_std in noise_stds:
-    for custom_image_numbers in subsets: 
+    for custom_image_numbers in subsets:
         print(custom_image_numbers) 
-        num_cameras = len(custom_image_numbers) 
-        iterations = min(int(400 * 48 / num_cameras), 1000)
+        num_cameras = len(custom_image_numbers)
 
         # if check_if_complete(experiment_dict, custom_image_numbers, noise_std):
-        #     print("continuing!!!!", noise_std, len(custom_image_numbers))
-        #     continue 
+        #     print("continuing - ", noise_std, len(custom_image_numbers))
+        #     continue
 
-        # this isn't foolproof but I'm going to generate 
-        # a random run id 
         run_id = np.random.randint(10000) 
         while run_id in experiment_dict.keys():
             run_id = np.random.randint(10000) 
 
         noise = [noise_std, 0]
-        config_dict = generate_config_dict(sample_name=sample_name, gpu_number=gpu_number, downsample=1,
-                                            camera_set="custom", use_neptune=use_neptune,
-                                            frame_number=frame,
-                                            run_args={"iters": iterations, "batch_size": 12, "num_depths": 32,
-                                                      "display_freq": 100},
-                                            custom_image_numbers=custom_image_numbers, 
-                                            #custom_crop_info={'crop_size': (1, 1), "ref_crop_center": (0.5, 0.5)}
-                                            )
-        
-        config_dict["sample_info"]["depth_range"] = (-7, 6)
+
+        config_dict = generate_config_dict(
+            sample_name=sample_name, gpu_number=gpu_number, downsample=1,
+            camera_set="custom", use_neptune=False,
+            frame_number=-1,
+            run_args={"iters": iterations, "batch_size": 12, "num_depths": 32,
+                        "display_freq": 25},
+            custom_image_numbers=custom_image_numbers, 
+        )
+
         run_manager = RunManager(config_dict, noise=noise)
 
         break 
     break 
+
 
         losses = [] 
         display_freq = config_dict["run_args"]["display_freq"]
@@ -102,7 +95,6 @@ for noise_std in noise_stds:
                 plt.tight_layout()
                 plt.show()
 
-
                 plt.figure()
                 plt.plot(losses)
                 plt.xlabel("iteration")
@@ -112,15 +104,14 @@ for noise_std in noise_stds:
 
                 plt.close()
 
-
-        # I'm only saving if it completes   
-        warp = outputs["warped_imgs"].detach().cpu().squeeze().numpy()
-        warp = np.mean(warp, axis=0) 
-        depth = outputs["depth"].detach().cpu().squeeze().numpy()
-        depth_savename = experiment_log_folder + f"/run_{run_id}_depth.npy"
-        np.save(depth_savename, depth) 
-        warp_savename = experiment_log_folder + f"/run_{run_id}_warp.npy"
-        np.save(warp_savename, warp)
+            if i in save_iters:  
+                warp = outputs["warped_imgs"].detach().cpu().squeeze().numpy()
+                warp = np.mean(warp, axis=0) 
+                depth = outputs["depth"].detach().cpu().squeeze().numpy()
+                depth_savename = experiment_log_folder + f"/run_{run_id}_iter_{i}_depth.npy"
+                np.save(depth_savename, depth) 
+                warp_savename = experiment_log_folder + f"/run_{run_id}_iter_{i}_warp.npy"
+                np.save(warp_savename, warp)
 
         settings_savename = experiment_log_folder + f"/run_{run_id}_config.json"
         save_dictionary(config_dict, settings_savename)
@@ -136,7 +127,3 @@ for noise_std in noise_stds:
 
         experiment_dict[run_id] = dict_entry
         save_dictionary(experiment_dict, experiment_dict_filename)
-
-
-
-

@@ -17,6 +17,7 @@ import torch
 import os
 from tqdm import tqdm
 import numpy as np
+import time 
 from matplotlib import pyplot as plt 
 from utility_functions import count_needed_runs
 
@@ -35,19 +36,20 @@ use_neptune = False
 
 os.environ["CUDA_VISIBLE_DEVICES"] = gpu_number
 
-experiment_dict_filename = log_folder + '/finger_from_low_res.json'
+experiment_dict_filename = log_folder + '/finger_rectified_0331.json'
 if os.path.exists(experiment_dict_filename):
     experiment_dict = load_dictionary(experiment_dict_filename) 
 else:
     experiment_dict = {}
 
-experiment_log_folder = log_folder + f'/finger_results'
+experiment_log_folder = log_folder + f'/finger_results_rectified_0331'
 if not os.path.exists(experiment_log_folder):
     os.mkdir(experiment_log_folder)
 
-noise_stds = [0, 5, 10, 15]
+noise_stds = [0, ]
 
-
+save_iters =[100, 200, 300]
+iterations = 301
 
 def check_if_complete(experiment_dict, image_numbers, noise):
     complete = False
@@ -64,28 +66,37 @@ def check_if_complete(experiment_dict, image_numbers, noise):
     return complete 
 
 
-for custom_image_numbers in subsets: 
-    for noise_std in noise_stds:
+# subsets = [torch.arange(48).tolist()]
+
+subsets = [
+    [13, 14, 15, 16, 19, 20, 21, 22, 25, 26, 27, 28, 31, 32, 33, 34]
+]
+
+ 
+for noise_std in noise_stds:
+    for custom_image_numbers in subsets:
         print(custom_image_numbers) 
         num_cameras = len(custom_image_numbers) 
-        iterations = min(int(500 * 48 / num_cameras), 1200)
 
-        if check_if_complete(experiment_dict, custom_image_numbers, noise_std):
-            print("continuing!!!!", noise_std, len(custom_image_numbers))
-            continue 
+        #if check_if_complete(experiment_dict, custom_image_numbers, noise_std):
+        #    print("continuing!!!!", noise_std, len(custom_image_numbers))
+            #continue 
 
         # this isn't foolproof but I'm going to generate 
         # a random run id 
+        np.random.seed(int(time.time()))
         run_id = np.random.randint(10000) 
         while run_id in experiment_dict.keys():
             run_id = np.random.randint(10000) 
+
+        print("ID", run_id)
 
         noise = [noise_std, 0]
         config_dict = generate_config_dict(sample_name=sample_name, gpu_number=gpu_number, downsample=1,
                                             camera_set="custom", use_neptune=use_neptune,
                                             frame_number=-1,
                                             run_args={"iters": iterations, "batch_size": 12, "num_depths": 32,
-                                                      "display_freq": 100},
+                                                      "display_freq": 25},
                                             custom_image_numbers=custom_image_numbers, 
                                             #custom_crop_info={'crop_size': (1, 1), "ref_crop_center": (0.5, 0.5)}
                                             )
@@ -122,6 +133,8 @@ for custom_image_numbers in subsets:
         # determine approximate average height for image alignment 
         height_est = torch.mean(depth_patch)
 
+
+
         # load the information into the config dict
         config_dict["sample_info"]["crop_size"] = crop_size
         config_dict["sample_info"]["ref_crop_center"] = crop_center 
@@ -129,6 +142,9 @@ for custom_image_numbers in subsets:
 
 
         run_manager = RunManager(config_dict, guide_map=depth_patch.squeeze(), noise=noise)
+
+        break 
+    break 
 
         losses = [] 
         display_freq = config_dict["run_args"]["display_freq"]
@@ -160,16 +176,17 @@ for custom_image_numbers in subsets:
 
                 plt.close()
 
+            if i in save_iters:  
+                print("SAVING")
+                warp = outputs["warped_imgs"].detach().cpu().squeeze().numpy()
+                warp = np.mean(warp, axis=0) 
+                depth = outputs["depth"].detach().cpu().squeeze().numpy()
+                depth_savename = experiment_log_folder + f"/run_{run_id}_depth_iter_{i}.npy"
+                np.save(depth_savename, depth) 
+                warp_savename = experiment_log_folder + f"/run_{run_id}_warp_iter_{i}.npy"
+                np.save(warp_savename, warp)
 
-        # I'm only saving if it completes   
-        warp = outputs["warped_imgs"].detach().cpu().squeeze().numpy()
-        warp = np.mean(warp, axis=0) 
-        depth = outputs["depth"].detach().cpu().squeeze().numpy()
-        depth_savename = experiment_log_folder + f"/run_{run_id}_depth.npy"
-        np.save(depth_savename, depth) 
-        warp_savename = experiment_log_folder + f"/run_{run_id}_warp.npy"
-        np.save(warp_savename, warp)
-
+        # only save the dictionaries if it completes
         settings_savename = experiment_log_folder + f"/run_{run_id}_config.json"
         c2 = config_dict.copy()
         c2["sample_info"]["height_est"] = float(c2["sample_info"]["height_est"])
