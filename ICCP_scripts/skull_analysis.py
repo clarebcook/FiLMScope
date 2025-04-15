@@ -9,6 +9,9 @@ from tqdm import tqdm
 import os 
 from skimage.metrics import structural_similarity as ssim
 
+
+log_folder = '/media/Friday/Temporary/Clare/ICCP_result_storage'
+
 # run_id = "IC-42"
 # image_type = "depth" 
 # image = download_image(run_id, image_type)

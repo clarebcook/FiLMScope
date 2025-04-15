@@ -59,6 +59,9 @@ def get_ss_volume_from_dataset(dataset, batch_size, depth_values, get_squared):
     for sample in ImageLoader:
         sample_cuda = tocuda(sample)
         images = sample_cuda["imgs"]
+        # TODO TODO TODO
+        # change this back!!!! just temporarily testing without rectifying all the way to the 
+        # reference camera perspective 
         warped_ss_maps = sample_cuda["warped_shift_slope_maps"] #- torch.asarray(dataset.ref_camera_shift_slopes).cuda()
         iic_maps = sample_cuda["inv_inter_camera_maps"]
 
@@ -109,6 +112,8 @@ def inverse_warping(
         base_grid = generate_base_grid(view_image.shape[2:]).cuda()
 
     slope_shifts = (ref_shift_slope + view_warped_shift_slope * -1) * ref_depth_est
+    # TODO TODO TODO change this back!!!! 
+    slope_shifts = view_warped_shift_slope * -1 * ref_depth_est
     full_grid = base_grid + slope_shifts + view_inv_inter_camera
 
     # and warp

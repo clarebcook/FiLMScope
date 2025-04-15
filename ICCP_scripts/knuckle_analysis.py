@@ -13,6 +13,7 @@ from skimage.metrics import structural_similarity as ssim
 # image_type = "depth" 
 # image = download_image(run_id, image_type)
 
+log_folder = "/media/Friday/Temporary/Clare/ICCP_result_storage"
 experiment_dict = load_dictionary(log_folder + '/knuckle_frame_438.json')
 
 # # can delete this, just making absolutely sure 

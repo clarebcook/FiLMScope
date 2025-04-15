@@ -5,6 +5,9 @@ import numpy as np
 from filmscope.recon_util import (get_individual_crop, get_sample_information,
                                   add_individual_crop)
 
+from filmscope.datasets import FSDataset
+from filmscope.config import path_to_data as default_path_to_data
+
 default_loss_weights = {
         "ssim": 6,
         "smooth": 0.35, 
@@ -152,3 +155,34 @@ def generate_config_dict(gpu_number, sample_name, use_neptune=False,
     }
 
     return config_dictionary
+
+
+def dataset_from_sample_name(sample_name, path_to_data=None,
+                             noise=[0, 0],
+                             *args, **kwargs):
+    # this doesn't matter, it just needs to be supplied for some reason
+    gpu_number = "0" 
+    config_dict = generate_config_dict(gpu_number, sample_name, *args, **kwargs)
+    info = config_dict["sample_info"]
+
+    if path_to_data is None:
+        path_to_data = default_path_to_data
+
+    if info["blank_filename"] is not None:
+        info["blank_filename"] = path_to_data + info["blank_filename"]
+
+    dataset = FSDataset(
+        path_to_data + info["image_filename"],
+        path_to_data + info["calibration_filename"],
+        info["image_numbers"],
+        info["downsample"],
+        info["crop_values"],
+        frame_number=-1,
+        ref_crop_center=info["ref_crop_center"],
+        crop_size=info["crop_size"],
+        height_est=info["height_est"],
+        blank_filename=None, #path_to_data + config_dict["sample_info"]["blank_filename"],
+        noise=noise,
+    )
+
+    return dataset 
