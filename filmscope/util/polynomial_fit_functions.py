@@ -26,7 +26,7 @@ def least_squares_fit(x, y, z, order=2, show=False):
 
     A = generate_A_matrix(order, X, Y)
 
-    coeff, r, rank, s = np.linalg.lstsq(A, Z)
+    coeff, r, rank, s = np.linalg.lstsq(A, Z, rcond=1)
     z_predict = np.matmul(A, coeff)
     error = Z - z_predict
     if show:
