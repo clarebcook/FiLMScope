@@ -4,7 +4,7 @@ The installation steps in the main README file should be completed prior to usin
 
 ## Downloading data
 
-Data needed to run these scripts can currently be downloaded from our Google Drive folder (https://drive.google.com/drive/folders/1q-tyXVybuK36g5OZaqQBDijxQNmk1Nps?usp=sharing). The "calibration_data" sub-folder should be downloaded and organized as:
+Data needed to run these scripts can currently be downloaded from Duke's digital repository: https://doi.org/10.7924/r4hd8386m. The "calibration_data" sub-folder should be downloaded and organized as:
 
 ```
 path_to_data/calibration_data
