@@ -1,4 +1,4 @@
-This folder contains scripts to run 3D reconstruction on FiLM-Scope data. More information on the algorithm used is detailed in our paper: https://doi.org/10.7924/r4hd8386m. Each script in this folder requires a different dataset, all of which are stored in Duke's digital repository: https://doi.org/10.7924/r4hd8386m.
+This folder contains scripts to run 3D reconstruction on FiLM-Scope data. More information on the algorithm used is detailed in our paper: https://doi.org/10.7924/r4hd8386m. Each script in this folder requires a different dataset, all of which are stored in Duke's digital repository: https://doi.org/10.1117/1.APN.4.4.046008.
 
 
 The installation steps in the main README file should be completed prior to using these scripts. 
