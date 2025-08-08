@@ -19,7 +19,7 @@ def generate_A_matrix(order, X, Y, verbose=False):
 
 
 # https://stackoverflow.com/questions/33964913/equivalent-of-polyfit-for-a-2d-polynomial-in-python
-def least_squares_fit(x, y, z, order=2, show=False, rcond=1):
+def least_squares_fit(x, y, z, order=2, show=False):
     X = x.flatten()
     Y = y.flatten()
     Z = z.flatten()
