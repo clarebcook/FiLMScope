@@ -124,7 +124,10 @@ class CalibrationInfoManager(metaclass=PropertyDictMeta):
 
     @image_numbers.setter
     def image_numbers(self, val):
-        self._image_numbers = np.asarray(val)
+        if val is None:
+            self._image_numbers = val
+        else:
+            self._image_numbers = np.asarray(val)
 
     @property 
     def plane_numbers(self):
