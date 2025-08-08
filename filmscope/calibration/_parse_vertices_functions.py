@@ -126,8 +126,10 @@ def determine_line_validity(
     if m2 > m2_thresh:
         is_line = False
 
+    ## 2024/12/27 Step 3 was being used to avoid detecting lines that were really just gradient changes
+    # but it was causing too many missed vertices. TODO: find a better way to implement this
+    
     # # Step 3: Then check whether LSF takes correct shape right before and after low point in ESF
-    # 2024/12/27 it would be good to find a way to do this, but this is causing too many missed vertices
     # lsf = lsf / np.max(np.abs(subimage))
     # min_avg_number = 5
     # avg_number = 20
@@ -153,13 +155,6 @@ def determine_line_validity(
         plt.figure()
         plt.plot(esf, label="esf")
         plt.axhline(y=0)
-        # plt.axvline(x=min_index, linestyle="--", color="black")
-        # plt.axvline(x=min_index2, linestyle="--", color="black")
-        # plt.plot(np.arange(avg_number) + min_index + 1, np.ones(avg_number) * sum_above)
-        # plt.plot(
-        #     np.arange(avg_number) + min_index - avg_number,
-        #     np.ones(avg_number) * sum_below,
-        # )
         plt.plot(lsf, label="lsf")
         plt.legend()
         plt.show()

@@ -81,7 +81,6 @@ class SystemVertexParser:
 
     def save_all_parameters(self):
         self.calib_info_manager.save_all_info()
-        # save_dictionary(self.params_dict, self.folder + self.parse_parameters_filename)
 
     def plane_index(self, number):
         return np.where(self.plane_numbers == number)[0][0]

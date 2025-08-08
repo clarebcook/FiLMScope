@@ -112,7 +112,8 @@ class CalibrationInfoManager(metaclass=PropertyDictMeta):
     @property 
     # this is using the identifed vertices to identify
     # which image numbers were used in calibration
-    # this creates a default if 
+    # If the value is not explicitly set, it will use the image numbers
+    # of all identified vertices 
     def image_numbers(self):
         if self._image_numbers is None:
             plane0 = self.plane_numbers[0] 

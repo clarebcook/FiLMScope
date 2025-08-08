@@ -11,25 +11,21 @@ from filmscope.util import load_graph_images
 from filmscope.config import path_to_data
 from filmscope.calibration import CalibrationInfoManager
 
-# delete this
-path_to_data = "D:/20241226_fluoro_chicken"
-
-
 # path location of calibration dataset
-image_folder = path_to_data  # + "/calibration_data"
+image_folder = path_to_data  + "/calibration_data"
 
 # set "current_plane" and "current_camera_index" to values other than 0
 # to start with plane/image other than the first one
 # this can be done if this step is partially completed
 global current_plane, current_camera_index, current_image, current_camera
-current_plane = 5
+current_plane = 0
 current_camera_index = 0
 current_image_set = None
 current_image = None
 
 # if example_only is True,
 # this will use the example calibration filename and not save deleted vertices
-example_only = False
+example_only = True
 if example_only:
     calibration_filename = image_folder + "/calibration_information_example"
 else:
