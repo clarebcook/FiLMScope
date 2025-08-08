@@ -22,7 +22,9 @@ config_dict = generate_config_dict(
     run_args={"num_depths": 32,
               "batch_size": 4,
               "iters": 300,
-              "display_freq": 75}
+              "display_freq": 75,
+              "rectify_perspective": True, 
+              "use_variance": False,}
 )
 
 # determine what depth range to consider above and below the guide map 

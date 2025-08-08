@@ -3,7 +3,8 @@
 #### which could have images of different sizes.
 #### this is why dictionaries are initially used to store the images
 
-import numpy as np 
+import numpy as np
+import cv2 
 import os
 from filmscope.util import load_dictionary
 from tqdm import tqdm 
@@ -72,7 +73,8 @@ def convert_to_array_image_numbers(image_numbers, total_images=48, exif_orientat
     return image_x_y_locs
 
 def load_image_set(filename, image_numbers=None, blank_filename=None,
-                   downsample=1, frame_number=-1):
+                   downsample=1, frame_number=-1, debayer=True,
+                   ensure_grayscale=True):
     dataset = xr.open_dataset(filename)
 
     # this is a little convoluted,
@@ -104,19 +106,30 @@ def load_image_set(filename, image_numbers=None, blank_filename=None,
         single_image = dataset.sel(image_y=y_cam, image_x=x_cam)
 
         single_image = single_image.images.data
-        single_image = single_image[::downsample, ::downsample]
+        #single_image = single_image[::downsample, ::downsample]
         images[number] = Image.fromarray(single_image)
         # rotate the necessary amount
         images[number] = images[number].transpose(Image.ROTATE_90)
 
         images[number] = np.asarray(images[number])
 
+        # a small number of datasets were changed and resaved without "sensor_chroma"
+        # so we check for that here, and assume the dataset is monochrome if it is not saved
+        if debayer and "sensor_chroma" in dataset and dataset.sensor_chroma.data == "bayer_gbrg":
+            images[number] = cv2.cvtColor(images[number], cv2.COLOR_BAYER_RG2RGB)
+
+        if ensure_grayscale and len(images[number].shape) > 2:
+            images[number] = np.mean(images[number], axis=-1).astype(images[number].dtype)
+
+        images[number] = images[number][::downsample, ::downsample]
+
     # if a blank filename is provided, subtract that out 
     # this can likely be improved in the future
     if blank_filename is not None:
         blank_images_dict = load_image_set(filename=blank_filename,
                                            image_numbers=image_numbers,
-                                           downsample=downsample)
+                                           downsample=downsample,
+                                           debayer=debayer)
         exposure = xr.open_dataset(filename).exposure.data.flatten()[0]
         blank_exposure = xr.open_dataset(blank_filename).exposure.data.flatten()[0]
 
@@ -164,7 +177,7 @@ def load_graph_images(
             *args,
             **kwargs,
         )
-
+        
         all_images[i] = images_dict
 
     return all_images

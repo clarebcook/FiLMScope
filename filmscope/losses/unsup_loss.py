@@ -28,15 +28,35 @@ class UnSupLoss(nn.Module):
         ref_img,
         individual_masks,
         global_mask=None, 
+        rectify_perspective=True,
     ):
         # [B, H, W, 1] -> [B, 1, H, W] 
         individual_masks = individual_masks.permute(0, 3, 1, 2) 
+
+        # if the depth map is rectified, the ref_camera_shift_slopes 
+        # should be set to zero 
+        if rectify_perspective:
+            rcss = torch.zeros_like(ref_camera_shift_slopes)
+        else:
+            rcss = ref_camera_shift_slopes
+
         warped_images, masks  = inverse_warping(
-            images, depth_est, ref_camera_shift_slopes,
-            inv_inter_camera_maps, warped_shift_slopes)
+            images, depth_est, rcss,
+            inv_inter_camera_maps, warped_shift_slopes,
+            rectify_perspective=rectify_perspective)
+        
         masks = masks * individual_masks
         if global_mask is not None:
             masks = masks * global_mask
+
+
+        # If the depth map is rectified, we need to warp the reference image
+        # to the reference plane using the depth_est 
+        if rectify_perspective:
+            ref_img, _ = inverse_warping(ref_img[None], depth_est, torch.zeros_like(ref_camera_shift_slopes), 
+                                    torch.zeros_like(ref_camera_shift_slopes), ref_camera_shift_slopes, 
+                                        rectify_perspective=rectify_perspective)
+            ref_img = ref_img.squeeze(0)
         
         ref_images = ref_img[None].repeat(images.shape[0], 1, 1, 1)
         batch_ssim = self.ssim(ref_images, warped_images, masks)

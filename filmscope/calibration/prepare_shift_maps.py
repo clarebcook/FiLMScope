@@ -7,6 +7,7 @@ import numpy as np
 #from filmscope.recon_util import generate_base_grid
 from torch.nn.functional import grid_sample
 from torchvision.transforms import Resize
+import torch.nn.functional as F
 
 # make the base grid that wee need to use F.grid_sample
 def generate_base_grid(image_shape):
@@ -43,29 +44,118 @@ def _get_organized_coeffs_from_file(calibration_filename, image_numbers, shift_t
 
     return torch.asarray(coeffs0), torch.asarray(coeffs1)
 
+# written with the help of perplexity.ai
+# this currently expects C=1
+def _fill_unfilled_pixels(image, kernel_size=3):
+    B, C, H, W = image.shape
+    filled_image = image.clone()
+    # Create a mask for filled (non-zero) pixels
+    mask = (image != 0).to(image.dtype)
+    # Compute the sum of neighboring pixel values and the count of valid neighbors
+    sum_kernel = torch.ones(
+        (1, 1, kernel_size, kernel_size), device=image.device, dtype=image.dtype
+    )
+    neighbor_sum = F.conv2d(image, sum_kernel, padding=kernel_size // 2)
+    neighbor_count = F.conv2d(mask, sum_kernel, padding=kernel_size // 2)
+    # Avoid division by zero
+    neighbor_count = torch.clamp(neighbor_count, min=1)
+    # Compute the average of valid neighbors
+    neighbor_avg = neighbor_sum / neighbor_count
+    # Fill unfilled pixels with the average of surrounding pixels
+    filled_image = torch.where(mask == 0, neighbor_avg, image)
+    return filled_image
 
-# the majority of this scripts was originally written with tf.image.dense_image_warp
-# which is no longer being maintained
-# this function is intended to closely imitate that, using pytorch 
+def _calculate_padding(flow):
+    max_flow_x = torch.ceil(torch.abs(flow[:, 0]).max()).int().item()
+    max_flow_y = torch.ceil(torch.abs(flow[:, 1]).max()).int().item()
+    max_flow_x = max(1, max_flow_x)
+    max_flow_y = max(1, max_flow_y)
+    return (max_flow_x, max_flow_y)
+
+# def _old_dense_iamge_warp(image, flows):
+#     flows = flows * 2
+#     flows[:, :, :, 1] /= image.shape[1]
+#     flows[:, :, :, 0] /= image.shape[2]
+#     flows = torch.flip(flows, dims=[-1])
+#     flows = flows * -1
+# 
+#     base_grid = generate_base_grid((image.shape[1], image.shape[2]))
+#     grid = base_grid + flows
+# 
+#     image = image.permute(0, 3, 1, 2)
+#     result = grid_sample(
+#         input=image,
+#         grid=grid.to(image.dtype),
+#         align_corners=False,
+#         padding_mode="border",
+#     )
+#     return result.permute(0, 2, 3, 1)
+
+
+
+# This function performs forward dense warping 
+# for instance, flowx = flows[b, h, w, 0], flowy = flows[b, h, w, 1]
+# output[b, h + flow, w + flowy, c] = image[b, h, w, c]
+# this function was written with the help of perplexity.ai
+# it currently does not have sub-pixel accuracy
 # image should be shape (batch, height, width, channels)
 # flows should be shape (batch, height, width, 2)
 # flows is in pixels
-def _dense_image_warp(image, flows):
-    flows = flows * 2 
-    flows[:, :, :, 1] /= image.shape[1] 
-    flows[:, :, :, 0] /= image.shape[2] 
-    flows = torch.flip(flows, dims=[-1])
-    flows = flows * -1 
-
-    base_grid = generate_base_grid((image.shape[1], image.shape[2]))
-    grid = base_grid + flows 
-
+def dense_image_warp(image, flows):
+    flows = flows.permute(0, 3, 1, 2)
     image = image.permute(0, 3, 1, 2)
-    result = grid_sample(input=image,
-                         grid=grid.to(image.dtype),
-                         align_corners=False,
-                         padding_mode='border')
-    return result.permute(0, 2, 3, 1)
+    
+    padding_x, padding_y = _calculate_padding(flows)
+    padded_image = F.pad(
+        image, (padding_y, padding_y, padding_x, padding_x), mode="replicate"
+    )
+    padded_flow = F.pad(
+        flows, (padding_y, padding_y, padding_x, padding_x, 0, 0), mode="replicate"
+    )
+
+    B, C, H, W = image.shape
+    device = image.device
+    pH, pW = H + 2 * padding_x, W + 2 * padding_y
+
+    x_coords, y_coords = torch.meshgrid(
+        torch.arange(pH), torch.arange(pW), indexing="ij"
+    )
+    coords = torch.stack((x_coords, y_coords)).float().to(device)
+    coords = coords.unsqueeze(0).repeat(B, 1, 1, 1)
+    # Add flow to coordinates
+    new_coords = coords + padded_flow
+    # Round to nearest pixel
+    new_coords = torch.round(new_coords).long()
+    # Create valid mask
+    valid_mask = (
+        (new_coords[:, 0] >= 0)
+        & (new_coords[:, 0] < pH)
+        & (new_coords[:, 1] >= 0)
+        & (new_coords[:, 1] < pW)
+    )
+    valid_mask = valid_mask.unsqueeze(1)  # Add channel dimension
+    # Clip coordinates to image boundaries
+    new_coords[:, 0] = torch.clamp(new_coords[:, 0], 0, pH - 1)
+    new_coords[:, 1] = torch.clamp(new_coords[:, 1], 0, pW - 1)
+    # Flatten indices for scatter_add_
+    flat_indices = new_coords[:, 0] * pW + new_coords[:, 1]
+    output = torch.zeros_like(padded_image)
+    for b in range(B):
+        for c in range(C):
+            flat_image = padded_image[b, c].flatten()
+            flat_image = flat_image * valid_mask[b, 0].flatten()
+            result = (
+                output[b, c]
+                .flatten()
+                .scatter_(0, flat_indices[b].flatten(), flat_image)
+                .view(pH, pW)
+            )
+            result = _fill_unfilled_pixels(result[None, None])
+            output[b, c] = result.squeeze()
+    # crop the output back down
+    output = output[:, :, padding_x:-padding_x, padding_y:-padding_y]
+    return output.permute(0, 2, 3, 1)
+
 
 
 # this will take coefficients as generated in calibration
@@ -108,7 +198,7 @@ def _get_shifts_from_coeffs(coeffs0, coeffs1, image_shape,
         for start, stop in zip(break_points[:-1], break_points[1:]):
             partial_shifts = shifts[start:stop]
             partial_shifts = (
-                _dense_image_warp(partial_shifts, partial_shifts) * -1
+                dense_image_warp(partial_shifts, partial_shifts) * -1
             )
             partial_shifts = partial_shifts
             shifts[start:stop] = partial_shifts
@@ -179,7 +269,7 @@ def generate_pixel_shift_maps(calibration_filename, type, downsample=1, image_nu
         partial_warps = inter_cam_map[start:stop]
         partial_slopes = slope_map[start:stop]
 
-        partial_warp_slopes = _dense_image_warp(partial_slopes, partial_warps)
+        partial_warp_slopes = dense_image_warp(partial_slopes, partial_warps)
         warped_shift_slopes[start:stop] = partial_warp_slopes
     return warped_shift_slopes 
     

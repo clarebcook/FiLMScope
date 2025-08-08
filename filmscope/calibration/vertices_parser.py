@@ -23,7 +23,7 @@ class SystemVertexParser:
         camera_numbers=None,
         plane_numbers=None,
         display_downsample=4,
-        lsf_range = None,
+        lsf_range=None,
     ):
         # this is not being properly used yet
         self.display_downsample = display_downsample
@@ -33,19 +33,23 @@ class SystemVertexParser:
         if expected_vertex_spacing is not None:
             self.calib_info_manager.expected_line_spacing = expected_vertex_spacing
         if self.calib_info_manager.expected_line_spacing is None:
-            raise ValueError("expected_vertex_spacing must be provided if not already in calibration file.")
+            raise ValueError(
+                "expected_vertex_spacing must be provided if not already in calibration file."
+            )
 
         # this is a little hacky
         # but I want to build in the ability to specify an lsf_range
         # without messing up my previous code which was using this value
         if lsf_range is None:
-            self.calib_info_manager.lsf_range = int(self.calib_info_manager.expected_line_spacing / 2)
+            self.calib_info_manager.lsf_range = int(
+                self.calib_info_manager.expected_line_spacing / 2
+            )
         else:
             self.calib_info_manager.lsf_range = lsf_range
 
         # also hacky, but get the first image
         # and use that to save the image shape
-        key = [i for i in all_images[0].keys()][0] 
+        key = [i for i in all_images[0].keys()][0]
         self.calib_info_manager.image_shape = all_images[0][key].shape
 
         def make_nearest_odd(number):
@@ -55,7 +59,9 @@ class SystemVertexParser:
                 return number
 
         self.default_threshold_values = {
-            "adaptive_threshold_range": make_nearest_odd(self.calib_info_manager.expected_line_spacing),
+            "adaptive_threshold_range": make_nearest_odd(
+                self.calib_info_manager.expected_line_spacing
+            ),
             "blur_range": 15,
             "edge_thresh1": 50,
             "edge_thresh2": 150,
@@ -75,7 +81,6 @@ class SystemVertexParser:
 
     def save_all_parameters(self):
         self.calib_info_manager.save_all_info()
-        #save_dictionary(self.params_dict, self.folder + self.parse_parameters_filename)
 
     def plane_index(self, number):
         return np.where(self.plane_numbers == number)[0][0]
@@ -167,21 +172,34 @@ class SystemVertexParser:
             threshold_values["edge_aperture"],
         )
 
-
         # this is a bit hacky, but I want to use different threshold values
         # for the two directions
         pixels0 = image.shape[0]
         pixels1 = image.shape[1]
-        lines_thresh0 = cv2.HoughLines(edges, 2, np.pi / 180, int(threshold_values["line_thresh_per_pixel"] * pixels0))
-        lines_thresh1 = cv2.HoughLines(edges, 2, np.pi / 180, int(threshold_values["line_thresh_per_pixel"] * pixels1)) 
+        lines_thresh0 = cv2.HoughLines(
+            edges,
+            2,
+            np.pi / 180,
+            int(threshold_values["line_thresh_per_pixel"] * pixels0),
+        )
+        lines_thresh1 = cv2.HoughLines(
+            edges,
+            2,
+            np.pi / 180,
+            int(threshold_values["line_thresh_per_pixel"] * pixels1),
+        )
 
-        lines_dict0 = condense_lines(lines_thresh0, r_thresh=self.calib_info_manager.expected_line_spacing / 2)
-        lines_dict1 = condense_lines(lines_thresh1, r_thresh=self.calib_info_manager.expected_line_spacing / 2)
-        
+        lines_dict0 = condense_lines(
+            lines_thresh0, r_thresh=self.calib_info_manager.expected_line_spacing / 2
+        )
+        lines_dict1 = condense_lines(
+            lines_thresh1, r_thresh=self.calib_info_manager.expected_line_spacing / 2
+        )
+
         lines_dict = {
-                "horizontal": lines_dict0["horizontal"],
-                "vertical": lines_dict1["vertical"],
-            }
+            "horizontal": lines_dict0["horizontal"],
+            "vertical": lines_dict1["vertical"],
+        }
 
         if plane_number not in self.calib_info_manager.detected_lines:
             self.calib_info_manager.detected_lines[plane_number] = {}
@@ -236,7 +254,9 @@ class SystemVertexParser:
             )
 
     # this function finds lines for every image not yet included in the detected_lines dict
-    def find_all_remaining_lines(self, show=True, max_display=20, threshold_values=None):
+    def find_all_remaining_lines(
+        self, show=True, max_display=20, threshold_values=None
+    ):
         num_displayed = 0
         for plane_number in self.plane_numbers:
             break_here = False
@@ -246,10 +266,16 @@ class SystemVertexParser:
                 #    continue
                 if (
                     plane_number in self.calib_info_manager.detected_lines
-                    and camera_number in self.calib_info_manager.detected_lines[plane_number]
+                    and camera_number
+                    in self.calib_info_manager.detected_lines[plane_number]
                 ):
                     continue
-                self.find_lines(camera_number, plane_number, show=show, threshold_values=threshold_values)
+                self.find_lines(
+                    camera_number,
+                    plane_number,
+                    show=show,
+                    threshold_values=threshold_values,
+                )
                 num_displayed = num_displayed + 1
                 if num_displayed >= max_display:
                     break_here = True
@@ -260,15 +286,19 @@ class SystemVertexParser:
     def remove_line(
         self, camera_number, plane_number, direction, approx_loc, show=False
     ):
-        lines = self.calib_info_manager.detected_lines[plane_number][camera_number][direction]
+        lines = self.calib_info_manager.detected_lines[plane_number][camera_number][
+            direction
+        ]
         lines = np.asarray(lines)
         line_locs = lines[:, 0]
         closest_index = np.argmin((line_locs - approx_loc) ** 2)
         deleted_line = lines[closest_index].tolist()
 
         lines = np.delete(lines, closest_index, axis=0)
-        self.calib_info_manager.detected_lines[plane_number][camera_number][direction] = lines
-        
+        self.calib_info_manager.detected_lines[plane_number][camera_number][
+            direction
+        ] = lines
+
         removed_lines_dict = self.calib_info_manager.removed_lines
         if plane_number not in removed_lines_dict:
             removed_lines_dict[plane_number] = {}
@@ -279,7 +309,9 @@ class SystemVertexParser:
         if show:
             plane_index = self.plane_index(plane_number)
             image = self.all_images[plane_index][camera_number]
-            lines_dict = self.calib_info_manager.detected_lines[plane_number][camera_number]
+            lines_dict = self.calib_info_manager.detected_lines[plane_number][
+                camera_number
+            ]
             all_lines = np.concatenate(
                 (lines_dict["horizontal"], lines_dict["vertical"]), axis=0
             )
@@ -293,9 +325,38 @@ class SystemVertexParser:
                 display_downsample=self.display_downsample,
             )
 
-    def find_vertices(self, camera_number, plane_number, show=False):
+    # 2024/12/27 this needs to be cleaned, but should be helpful for debugging missing points
+    def debug_missing_point(self, camera_number, plane_number, approx_location):
+        lines_dict = self.calib_info_manager.detected_lines[plane_number][camera_number]
+        approx_points = find_approx_points(lines_dict).squeeze()
+        plane_index = self.plane_index(plane_number)
+        image = self.all_images[plane_index][camera_number]
+        binary_threshold_values = self._get_threshold_values(
+            camera_number, plane_number
+        ).copy()
+        binary_threshold_values["blur_range"] = 1
+
+        # find the closest approximate point
+        distances = np.linalg.norm(approx_points - approx_location, axis=1)
+        idx = np.argmin(distances)
+        approx_point = approx_points[idx]
+
+        return get_all_vertices(
+            image,
+            [approx_point],
+            binary_threshold_values,
+            show=False,
+            lsf_range=self.calib_info_manager.lsf_range,
+            display_title="Image with vertices",
+            display_downsample=1,
+            debug=True,
+        )
+
+    def find_vertices(self, camera_number, plane_number, show=False, *args, **kwargs):
         try:
-            lines_dict = self.calib_info_manager.detected_lines[plane_number][camera_number]
+            lines_dict = self.calib_info_manager.detected_lines[plane_number][
+                camera_number
+            ]
         except Exception:
             raise Exception(
                 f"Lines have not been found for cam {camera_number}, plane {plane_number}"
@@ -305,20 +366,22 @@ class SystemVertexParser:
         plane_index = self.plane_index(plane_number)
         image = self.all_images[plane_index][camera_number]
 
-        threshold_values = self._get_threshold_values(camera_number, plane_number).copy()
+        threshold_values = self._get_threshold_values(
+            camera_number, plane_number
+        ).copy()
 
         # 2024/05/30 test: when getting the vertices, we don't need to blur the binary image ?
         threshold_values["blur_range"] = 1
         vertices = get_all_vertices(
             image,
             approx_points,
-            expected_spacing=self.calib_info_manager.expected_line_spacing,
             binary_threshold_values=threshold_values,
-            expected_spacing_thresh=int(self.calib_info_manager.expected_line_spacing / 3),
             show=show,
             lsf_range=self.calib_info_manager.lsf_range,
             display_title=f"Vertices for camera {camera_number}, plane {plane_number}",
             display_downsample=self.display_downsample,
+            *args,
+            **kwargs,
         )
 
         all_vertices = self.calib_info_manager.all_vertices
@@ -358,7 +421,9 @@ class SystemVertexParser:
         )
         deleted_point = vertices[closest_index].tolist()
         vertices = np.delete(vertices, closest_index, axis=0)
-        self.calib_info_manager.all_vertices[int(plane_number)][int(camera_number)] = vertices.tolist()
+        self.calib_info_manager.all_vertices[int(plane_number)][
+            int(camera_number)
+        ] = vertices.tolist()
 
         removed_points_dict = self.calib_info_manager.removed_points
         if plane_number not in removed_points_dict:
@@ -374,18 +439,3 @@ class SystemVertexParser:
             display_with_points(
                 image, np.asarray(vertices, dtype=np.uint16), radius=20, thickness=4
             )
-
-    def remove_nan_points(self):
-        # this is such a stupid approach and can't possibly be the best way
-        dictionary = self.calib_info_manager.all_vertices.copy()
-        for key, item in self.calib_info_manager.all_vertices.items():
-            item = item.copy()
-            for key2, point_list in item.items():
-                point_list2 = []
-                for row in point_list:
-                    if np.isnan(row).any():
-                        continue
-                    point_list2.append(row)
-
-                dictionary[key][key2] = point_list2
-        self.calib_info_manager.all_vertices = dictionary
