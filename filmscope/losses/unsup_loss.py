@@ -42,7 +42,8 @@ class UnSupLoss(nn.Module):
 
         warped_images, masks  = inverse_warping(
             images, depth_est, rcss,
-            inv_inter_camera_maps, warped_shift_slopes)
+            inv_inter_camera_maps, warped_shift_slopes,
+            rectify_perspective=rectify_perspective)
         
         masks = masks * individual_masks
         if global_mask is not None:
@@ -54,7 +55,7 @@ class UnSupLoss(nn.Module):
         if rectify_perspective:
             ref_img, _ = inverse_warping(ref_img[None], depth_est, torch.zeros_like(ref_camera_shift_slopes), 
                                     torch.zeros_like(ref_camera_shift_slopes), ref_camera_shift_slopes, 
-                                        )
+                                        rectify_perspective=rectify_perspective)
             ref_img = ref_img.squeeze(0)
         
         ref_images = ref_img[None].repeat(images.shape[0], 1, 1, 1)
