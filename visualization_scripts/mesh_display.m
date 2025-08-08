@@ -1,6 +1,6 @@
 %% Read in files
 % replace this block with reading in your height map and image
-% these 2D arrays of the same size
+% these should be 2D arrays of the same size
 heightMap;
 grayImage;
 
