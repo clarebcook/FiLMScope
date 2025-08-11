@@ -182,7 +182,7 @@ def dataset_from_sample_name(sample_name, path_to_data=None,
         ref_crop_center=info["ref_crop_center"],
         crop_size=info["crop_size"],
         height_est=info["height_est"],
-        blank_filename=None, #path_to_data + config_dict["sample_info"]["blank_filename"],
+        blank_filename=config_dict["sample_info"]["blank_filename"],
         noise=noise,
     )
 
