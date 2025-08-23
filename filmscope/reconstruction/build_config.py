@@ -84,6 +84,13 @@ def generate_config_dict(gpu_number, sample_name, use_neptune=False,
                          loss_weights={}, run_args={}, custom_image_numbers=None,
                          crop_name=None, crop_number=None, 
                          custom_crop_info={}):
+    for key in run_args:
+        if key not in default_run_args:
+            print(f"WARNING: {key} is not a usable run argument")
+    for key in loss_weights:
+        if key not in default_loss_weights:
+            print(f"WARNING: {key} is not a loss weight")
+
     if custom_image_numbers is not None:
         camera_set = "custom"
         cam_num_sets["custom"] = custom_image_numbers
