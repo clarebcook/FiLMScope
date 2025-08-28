@@ -1,5 +1,6 @@
 # location where data was downloaded
 path_to_data = "/path/to/folder/FiLMScope_paper_data"
+path_to_data = "/media/Wednesday/Temporary/clare/UTMB_trip"
 
 # this is where logging will be performed by some scripts
 log_folder = path_to_data + '/log_folder'

@@ -3,6 +3,35 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
+class srcSSIM(nn.Module):
+    def __init__(self):
+        super(srcSSIM, self).__init__()
+        self.ssim = SSIM()
+
+    # TODO: eventually should manage sizes better
+    def forward(self, warped_images, masks): 
+        N = warped_images.shape[0] 
+        full_SSIM = None 
+        for i in range(N - 1):
+            x = warped_images[[i]] 
+            y = warped_images[i + 1:]
+            m = masks[i + 1:]
+            if len(y.shape) == 3:
+                y = y[None]
+                m = m[None]
+            # TODO: think of more clever way to handle masks
+            # so one image with big mask doesn't mess everything up 
+            loop_SSIM = self.ssim(x, y, m)
+            if full_SSIM is None:
+                full_SSIM = torch.zeros((warped_images.shape[0], warped_images.shape[1],
+                                        loop_SSIM.shape[2], loop_SSIM.shape[3]),
+                                        dtype=loop_SSIM.dtype).to(loop_SSIM.device)
+            full_SSIM[i] = torch.mean(loop_SSIM * (N - i - 1), axis=0) 
+        return full_SSIM
+
+
+
+
 class SSIM(nn.Module):
     """Layer to compute the SSIM loss between a pair of images"""
 

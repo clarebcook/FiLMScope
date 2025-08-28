@@ -158,7 +158,7 @@ def generate_config_dict(gpu_number, sample_name, use_neptune=False,
     return config_dictionary
 
 
-def dataset_from_sample_name(sample_name, path_to_data=None,
+def dataset_from_sample_name(sample_name, path_to_data=None,images_dict=None,
                              noise=[0, 0],
                              *args, **kwargs):
     # this doesn't matter, it just needs to be supplied for some reason
@@ -173,17 +173,18 @@ def dataset_from_sample_name(sample_name, path_to_data=None,
         info["blank_filename"] = path_to_data + info["blank_filename"]
 
     dataset = FSDataset(
-        path_to_data + info["image_filename"],
-        path_to_data + info["calibration_filename"],
-        info["image_numbers"],
-        info["downsample"],
-        info["crop_values"],
-        frame_number=-1,
+        image_filename=path_to_data + info["image_filename"],
+        calibration_filename=path_to_data + info["calibration_filename"],
+        image_numbers=info["image_numbers"],
+        downsample=info["downsample"],
+        crop_values=info["crop_values"],
+        frame_number=config_dict["run_args"]["frame_number"],
         ref_crop_center=info["ref_crop_center"],
         crop_size=info["crop_size"],
         height_est=info["height_est"],
         blank_filename=None, #path_to_data + config_dict["sample_info"]["blank_filename"],
         noise=noise,
+        images_dict=images_dict
     )
 
     return dataset 

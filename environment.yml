@@ -1,4 +1,4 @@
-name: filmscope
+name: filmscope_utmb
 channels:
   - pytorch
   - nvidia

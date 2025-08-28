@@ -5,7 +5,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 # from config import args, device
-from .modules import SSIM, depth_smoothness
+from .modules import SSIM, depth_smoothness, srcSSIM
 from filmscope.recon_util import inverse_warping
 
 class UnSupLoss(nn.Module):
@@ -67,6 +67,95 @@ class UnSupLoss(nn.Module):
             depth_est[None].permute(0, 2, 3, 1),
             ref_img[None].permute(0, 2, 3, 1), self.smooth_lambda
         )
+
+        self.unsup_loss = (
+            + self.ssim_weight * self.ssim_loss
+            + self.smooth_weight * self.smooth_loss
+        )
+
+        loss_dict = {
+            "unsup": self.unsup_loss,
+            "ssim": self.ssim_loss,
+            "smooth": self.smooth_loss,
+        }
+
+        outputs_dict = {
+            "masks": masks,
+            "warped_imgs": warped_images,
+        }
+        return self.unsup_loss, loss_dict, outputs_dict
+    
+
+class NoRefLoss(nn.Module):
+    def __init__(self, ssim_weight=6, smooth_weight=0.18, smooth_lambda=1):
+        super(NoRefLoss, self).__init__()
+        self.ssim = srcSSIM()
+
+        self.ssim_weight = ssim_weight
+        self.smooth_weight = smooth_weight
+        self.smooth_lambda = smooth_lambda
+
+    # images is [N, C, H, W]
+    def forward(
+        self,
+        images,
+        depth_est,
+        warped_shift_slopes,
+        inv_inter_camera_maps,
+        #ref_camera_shift_slopes,
+        #ref_img,
+        individual_masks,
+        rectify_perspective, 
+        ref_camera_shift_slopes=None,
+        global_mask=None, 
+    ):
+        if not rectify_perspective and ref_camera_shift_slopes is None:
+            raise ValueError("""reference shift slopes must be provided
+                             when rectify_perspective=False""")
+
+        # [B, H, W, 1] -> [B, 1, H, W] 
+        individual_masks = individual_masks.permute(0, 3, 1, 2) 
+
+        # if the depth map is rectified, the ref_camera_shift_slopes 
+        # should be set to zero 
+        if rectify_perspective:
+            H = individual_masks.shape[1]
+            W = individual_masks.shape[2]
+            shape = [1, H, W, 2]
+            rcss = torch.zeros(shape, dtype=warped_shift_slopes.dtype).to(
+                warped_shift_slopes.device)
+        else:
+            rcss = ref_camera_shift_slopes
+
+        warped_images, masks  = inverse_warping(
+            images, depth_est, rcss,
+            inv_inter_camera_maps, warped_shift_slopes,
+            rectify_perspective=rectify_perspective)
+        
+        masks = masks * individual_masks
+        if global_mask is not None:
+            masks = masks * global_mask
+
+        # # If the depth map is rectified, we need to warp the reference image
+        # # to the reference plane using the depth_est 
+        # if rectify_perspective:
+        #     ref_img, _ = inverse_warping(ref_img[None], depth_est, torch.zeros_like(ref_camera_shift_slopes), 
+        #                             torch.zeros_like(ref_camera_shift_slopes), ref_camera_shift_slopes, 
+        #                                 rectify_perspective=rectify_perspective)
+        #     ref_img = ref_img.squeeze(0)
+        
+        # ref_images = ref_img[None].repeat(images.shape[0], 1, 1, 1)
+        batch_ssim = self.ssim(warped_images, masks)
+        self.ssim_loss = torch.mean(batch_ssim)
+
+        # TODO: update to use a more depth aware smoothing loss 
+
+        # # permute from shape [C, H, W] -> [B, H, W, C]
+        # self.smooth_loss = depth_smoothness(
+        #     depth_est[None].permute(0, 2, 3, 1),
+        #     ref_img[None].permute(0, 2, 3, 1), self.smooth_lambda
+        # )
+        self.smooth_loss = 0 
 
         self.unsup_loss = (
             + self.ssim_weight * self.ssim_loss

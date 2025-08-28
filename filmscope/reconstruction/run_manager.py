@@ -1,6 +1,6 @@
 from filmscope.datasets import FSDataset
 from filmscope.models import VolumeConvNet
-from filmscope.losses import UnSupLoss
+from filmscope.losses import UnSupLoss, NoRefLoss
 from filmscope.config import path_to_data
 from filmscope.recon_util import (tocuda, get_ss_volume_from_dataset,
                                   get_height_aware_vol_from_dataset)
@@ -12,7 +12,8 @@ import torch.optim as optim
 class RunManager:
     def __init__(self, config_dict, guide_map=None,
                  prev_model=None, global_mask=None, run_name=None,
-                 noise=[0,0]):
+                 noise=[0,0], use_ref_for_loss=True,
+                 image_set=None):
         self.run_name = run_name
         self.config_dict = config_dict
         self.run_args = config_dict["run_args"]
@@ -34,17 +35,18 @@ class RunManager:
         else:
             blank_filename = None
         self.dataset = FSDataset(
-            path_to_data + self.info["image_filename"],
-            path_to_data + self.info["calibration_filename"],
-            self.info["image_numbers"],
-            self.info["downsample"],
-            self.info["crop_values"],
+            image_filename=path_to_data + self.info["image_filename"],
+            calibration_filename=path_to_data + self.info["calibration_filename"],
+            image_numbers=self.info["image_numbers"],
+            downsample=self.info["downsample"],
+            crop_values=self.info["crop_values"],
             frame_number=frame_number,
             ref_crop_center=self.info["ref_crop_center"],
             crop_size=self.info["crop_size"],
             height_est=self.info["height_est"],
             blank_filename=blank_filename,
             noise=noise,
+            images_dict=image_set
         )
 
         self.image_loader = DataLoader(
@@ -76,14 +78,23 @@ class RunManager:
         )
 
         # make the criterion
-        self.criterion = UnSupLoss(
-            smooth_weight=self.loss_w["smooth"],
-            ssim_weight=self.loss_w["ssim"],
-            smooth_lambda=self.loss_w["smooth_lambda"]
+        if use_ref_for_loss:
+            criterion = UnSupLoss
+        else:
+            criterion = NoRefLoss
+        self.use_ref_for_loss = use_ref_for_loss
+        self.criterion = criterion(
+           smooth_weight=self.loss_w["smooth"],
+           ssim_weight=self.loss_w["ssim"],
+           smooth_lambda=self.loss_w["smooth_lambda"]
         ).cuda()
 
+
         # prepare other things needed throughout reconstruction
-        self.reference_image = self.dataset.reference_image.cuda()
+        if self.use_ref_for_loss:
+            self.reference_image = self.dataset.reference_image.cuda()
+        else:
+            self.reference_image = None 
         self.reference_shift_slopes = self.dataset.ref_camera_shift_slopes.cuda()
         self.depth_values = torch.linspace(
                 self.info["depth_range"][0],
@@ -173,17 +184,30 @@ class RunManager:
         loss_values = {}
         loss_outputs = {}
 
-        main_loss, losses, loss_outputs = self.criterion(
-            sample["imgs"],
-            outputs["depth"],
-            sample["warped_shift_slope_maps"],
-            sample["inv_inter_camera_maps"],
-            self.reference_shift_slopes,
-            self.reference_image,
-            sample["masks"],
-            global_mask=self.global_mask,
-            rectify_perspective=self.rectify, 
-        )
+        if self.use_ref_for_loss:
+            main_loss, losses, loss_outputs = self.criterion(
+                sample["imgs"],
+                outputs["depth"],
+                sample["warped_shift_slope_maps"],
+                sample["inv_inter_camera_maps"],
+                self.reference_shift_slopes,
+                self.reference_image,
+                sample["masks"],
+                global_mask=self.global_mask,
+                rectify_perspective=self.rectify, 
+            )
+        else:
+            main_loss, losses, loss_outputs = self.criterion(
+                sample["imgs"],
+                outputs["depth"],
+                sample["warped_shift_slope_maps"],
+                sample["inv_inter_camera_maps"],
+                ref_camera_shift_slopes=self.reference_shift_slopes,
+                #self.reference_image,
+                individual_masks=sample["masks"],
+                global_mask=self.global_mask,
+                rectify_perspective=self.rectify, 
+            )
 
         for key, item in losses.items():
             loss_values[key] = item

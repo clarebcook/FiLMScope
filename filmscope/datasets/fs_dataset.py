@@ -13,9 +13,10 @@ from filmscope.util import load_dictionary, load_image_set, load_from_single_ima
 class FSDataset(Dataset):
     def __init__(
         self,
-        image_filename,
-        calibration_filename,
-        image_numbers,
+        image_filename=None,
+        dataset=None, 
+        calibration_filename=None,
+        image_numbers=[],
         downsample=1,
         crop_values=(0, 1, 0, 1),
         enforce_divisible=32, # set to -1 to not enforce
@@ -30,8 +31,12 @@ class FSDataset(Dataset):
         crop_centers=None,  # dictionary with image numbers as keys, (x, y) point in image coordinates as values
         crop_size=None,  # length 2 tuple with normalized crop size (i.e. values betwteen 0 and 1)
         ensure_grayscale=True,
-        noise=[0, 0], # mean, std 
+        noise=[0, 0], # mean, std
+        images_dict=None 
     ):
+        
+        if image_filename is None and dataset is None and images is None:
+            raise ValueError(f"either image_filename or dataset or images must be supplied")
         self.is_single_image = len(load_dictionary(calibration_filename)["crop_indices"]) != 0
         self.calibration_filename = calibration_filename
         self.ensure_grayscale = ensure_grayscale
@@ -40,9 +45,11 @@ class FSDataset(Dataset):
         
         self.image_numbers = torch.asarray(image_numbers)
         self.image_filename = image_filename
+        self.dataset = dataset 
         self.downsample = downsample
         self.frame_number = frame_number
-        images = self.prep_images(noise)
+    
+        images = self.prep_images(noise, images_dict)
 
         # prepare the necessary maps
         # for legacy reasons these start out as numpy arrays
@@ -124,14 +131,14 @@ class FSDataset(Dataset):
             masks = torch.ones(
                 inv_inter_camera_maps.shape[:3] + (1,), dtype=torch.bool
             )
-        # adjust inter camera maps based on individual crops, if necessary
+        # # adjust inter camera maps based on individual crops, if necessary
         else:
             self.full_crops = {}
             self.map_crops = {}
-            ref_center = crop_centers[reference_camera_num]
+            #crop_centers[reference_camera_num]
 
             # figure out the reference crop
-            center = crop_centers[reference_camera_num]
+            center = ref_crop_center#crop_centers[reference_camera_num]
             # based on lengthx, lengthy get the start and stop crop
             # for both full and downsampled
             center_pixels = (
@@ -215,8 +222,8 @@ class FSDataset(Dataset):
 
                 # find the shift from the reference center
                 # and adjust the inter camera shift values accordingly
-                shiftx = ref_center[0] - center[0]
-                shifty = ref_center[1] - center[1]
+                shiftx = ref_crop_center[0] - center[0]
+                shifty = ref_crop_center[1] - center[1]
                 # adjust those shifts to be normalized for new image size
                 ratiox = lengthx / images.shape[1]
                 ratioy = lengthy / images.shape[2]
@@ -229,13 +236,15 @@ class FSDataset(Dataset):
                 crop_iis_maps[i, :, :, 0] = crop_iis_maps[i, :, :, 0] + shifty
                 crop_iis_maps[i, :, :, 1] = crop_iis_maps[i, :, :, 1] + shiftx
 
-                if image_number == reference_camera_num:
-                    ref_camera_shift_slopes = crop_maps(
-                        ref_camera_shift_slopes, ref_map_crops
-                    )
+            #if image_number == reference_camera_num:
+            ref_camera_shift_slopes = crop_maps(
+                ref_camera_shift_slopes, ref_map_crops
+            )
             images = crop_images
             warped_shift_slope_maps = crop_warp_maps
             inv_inter_camera_maps = crop_iis_maps
+
+            self.ref_map_crops = ref_map_crops
 
         self.images = images.permute([0, 3, 1, 2]).to(torch.float32)
         self.warped_shift_slope_maps = warped_shift_slope_maps
@@ -282,20 +291,21 @@ class FSDataset(Dataset):
             "masks": self.masks, 
         }
 
-    def prep_images(self, noise=[0,0]):
+    def prep_images(self, noise=[0,0], images_dict=None):
         if self.is_single_image:
             if self.downsample != 1:
                 raise ValueError("Only set up for downsample=1 with single images")
             images_dict = load_from_single_image(self.image_filename,
                                                  self.calibration_filename)
-        else: 
+        elif images_dict is None: 
             images_dict = load_image_set(
                 filename=self.image_filename,
                 image_numbers=self.image_numbers.tolist(),
                 downsample=self.downsample,
                 frame_number=self.frame_number,
                 blank_filename=self.blank_filename,
-                ensure_grayscale=self.ensure_grayscale
+                ensure_grayscale=self.ensure_grayscale,
+                dataset=self.dataset
             )
 
         images = None
@@ -358,6 +368,36 @@ class FSDataset(Dataset):
         self.images = images.transpose([0, 3, 1, 2]).astype(np.float32)
 
 
+# idea here is that it accounts for negative crops
+# I'm using this to load in a previous full res map
+# and prepare it to be used as a guide map
+def crop_image(image, crops, downsample=1):
+    image = image[::downsample, ::downsample]
+    startx, endx, starty, endy = crops
+    startx2 = max(startx, 0)
+    starty2 = max(starty, 0) 
+    endx2 = min(endx, image.shape[0] - 1) 
+    endy2 = min(endy, image.shape[1] - 1)
+
+    lengthx = crops[1] - crops[0]
+    lengthy = crops[3] - crops[2] 
+    full_image = torch.zeros((lengthx, lengthy), dtype=image.dtype)
+
+    if endx2 != endx:
+        endx = endx2 - endx
+    else:
+        endx = endx - startx
+    if endy2 != endy:
+        endy = endy2 - endy
+    else:
+        endy = endy - starty
+
+    image_crop = image[startx2:endx2, starty2:endy2]
+    full_image[startx2-startx:endx, starty2-starty:endy] = image_crop
+    return full_image
+
+
+
 def next_multiple(number, multiple):
     remainder = number % multiple
     if remainder == 0:
@@ -392,6 +432,39 @@ def adjust_distance(x0, x1, new_diff, minx, maxx):
     assert new_x1 - new_x0 == new_diff
 
     return new_x0, new_x1
+
+
+
+
+def get_crops(ref_crop_center, crop_size, full_image_shape, downsample,
+              enforce_divisible):
+    
+    # I'm SURE there's a better way to do this 
+    image_shape = [np.ceil(full_image_shape[0] / downsample),
+                   np.ceil(full_image_shape[1] / downsample)]
+    
+    lengthx = round(crop_size[0] * image_shape[0])
+    lengthy = round(crop_size[1] * image_shape[1])
+    
+    if enforce_divisible != -1:
+        diffx = next_multiple(lengthx, enforce_divisible) - lengthx
+        diffy = next_multiple(lengthy, enforce_divisible) - lengthy
+
+        lengthx = lengthx + diffx
+        lengthy = lengthy + diffy
+    
+    center_pixels = [ref_crop_center[0] * image_shape[0],
+                     ref_crop_center[1] * image_shape[1]] 
+    startx = round(center_pixels[0] - lengthx / 2)
+    starty = round(center_pixels[1] - lengthy / 2)
+    endx = startx + lengthx
+    endy = starty + lengthy
+
+    ref_map_crops = [startx, endx, starty, endy]
+    return ref_map_crops 
+    
+
+
 
 # crop maps according to provided values
 # crop_values: [startx, endx, starty, endy]
@@ -472,3 +545,42 @@ def find_matching_points(
         coords[i] = camera_loc
 
     return coords
+
+
+from torch.nn import functional as F 
+from filmscope.calibration import CalibrationInfoManager
+def form_full_res_map(depth, dataset):
+    full_image_shape = CalibrationInfoManager(
+    dataset.calibration_filename).image_shape
+    downsample = dataset.downsample
+    crop_image_shape = (int(np.ceil(full_image_shape[0] / downsample)),
+                        int(np.ceil(full_image_shape[1] / downsample)))
+    crops = dataset.ref_map_crops
+    fcrops = [i * downsample for i in crops]
+
+    full_depth = torch.zeros(full_image_shape, dtype=depth.dtype)
+
+    fx0 = max(0, fcrops[0]) 
+    fx1 = min(fcrops[1], full_depth.shape[0]) 
+    fy0 = max(0, fcrops[2]) 
+    fy1 = min(fcrops[3], full_depth.shape[1])
+
+    cx0 = max(0, -crops[0])
+    cy0 = max(0, -crops[2]) 
+    cx1 = crops[1] 
+    if cx1 > crop_image_shape[0]:
+        cx1 = crop_image_shape[0] - cx1
+    cy1 = crops[3] 
+    if cy1 > crop_image_shape[1]:
+        cy1 = crop_image_shape[1] - cy1 
+
+    crop_depth = depth[cx0:cx1, cy0:cy1]
+
+    # adjust to fit where it needs to go 
+    new_shape = (fx1 - fx0, fy1 - fy0)
+
+    crop_depth_up = F.interpolate(crop_depth[None, None], new_shape,
+                                  mode='bilinear').squeeze()
+
+    full_depth[fx0:fx1, fy0:fy1] = crop_depth_up
+    return full_depth

@@ -74,8 +74,9 @@ def convert_to_array_image_numbers(image_numbers, total_images=48, exif_orientat
 
 def load_image_set(filename, image_numbers=None, blank_filename=None,
                    downsample=1, frame_number=-1, debayer=True,
-                   ensure_grayscale=True):
-    dataset = xr.open_dataset(filename)
+                   ensure_grayscale=True, dataset=None):
+    if dataset is None:
+        dataset = xr.open_dataset(filename)
 
     # this is a little convoluted,
     # but just trying to find the image numbers
